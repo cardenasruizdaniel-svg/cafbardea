@@ -13,8 +13,6 @@ certifi==2026.6.17
 cffi==2.0.0
 charset-normalizer==3.4.7
 click==8.4.2
-# Editable install with no version control (clothing-store-backend==0.1.0)
--e c:\users\asert\onedrive\documentos\new opencode project\backend
 colorama==0.4.6
 coverage==7.15.2
 cryptography==49.0.0
