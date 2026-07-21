@@ -389,10 +389,6 @@ class LayoutManager {
         const backdrop = document.getElementById('sidebarBackdrop');
 
         const collapseKey = 'cafbardla.sidebarCollapsed';
-        const savedCollapsed = Storage.get(collapseKey);
-        if (savedCollapsed === true && window.innerWidth > 1024) {
-            document.body.classList.add('sidebar-collapsed');
-        }
 
         const updateCollapseIcon = () => {
             if (!collapseBtn) return;
@@ -405,7 +401,19 @@ class LayoutManager {
             document.body.classList.remove('sidebar-mobile-open');
         };
 
+        const syncViewportLayout = () => {
+            if (window.innerWidth > 1024) {
+                // En escritorio siempre mostramos el sidebar completo para una vista premium.
+                document.body.classList.remove('sidebar-collapsed');
+                closeMobileSidebar();
+                Storage.remove(collapseKey);
+            }
+        };
+
         collapseBtn?.addEventListener('click', () => {
+            if (window.innerWidth > 1024) {
+                return;
+            }
             document.body.classList.toggle('sidebar-collapsed');
             const collapsed = document.body.classList.contains('sidebar-collapsed');
             Storage.set(collapseKey, collapsed);
@@ -433,6 +441,9 @@ class LayoutManager {
         if (/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)) {
             document.body.classList.add('platform-mobile-browser');
         }
+
+        syncViewportLayout();
+        window.addEventListener('resize', throttle(syncViewportLayout, 150));
 
         updateCollapseIcon();
     }

@@ -1,1 +1,580 @@
-{% extends "base.html" %}{% block content %}<header><div><p class="eyebrow">MAPA OPERATIVO</p><h1>Mesas y zonas</h1></div></header><div class="actions"><form action="/zonas" method="post"><input name="nombre" placeholder="Nueva zona" required><button>Crear zona</button></form><form action="/mesas" method="post"><select name="zona_id">{%for z in zonas%}<option value="{{z.id}}">{{z.nombre}}</option>{%endfor%}</select><input name="nombre" placeholder="Mesa, ej. B-4" required><input name="capacidad" type="number" value="4" min="1"><button>Agregar mesa</button></form></div>{%for z in zonas%}<section class="panel"><h2>{{z.nombre}}</h2><div class="floor">{%for m in z.mesas%}<a class="table {{m.estado}} {{m.forma}}" style="left:{{m.posicion_x}}%;top:{{m.posicion_y}}%" href="/comanda/{{m.id}}"><b>{{m.nombre}}</b><small>{{m.capacidad}} puestos</small><em>{{m.estado}}</em></a>{%endfor%}</div></section>{%endfor%}{%endblock%}
+{% extends "base.html" %}
+
+{% block extra_css %}
+<style>
+	.mesas-page {
+		--surface-soft: #fffdfa;
+		--line-soft: #efe9df;
+		--text-soft: #6b6258;
+		--brand-deep: #3a2a16;
+		--brand-accent: #c58b38;
+		--brand-cream: #fff6e8;
+		--ok: #1f9d72;
+		--busy: #d26a27;
+		--warn: #d1a329;
+		--clean: #3b7dd8;
+	}
+
+	body.no-select {
+		user-select: none;
+	}
+
+	.mesas-page .mesas-hero {
+		background:
+			radial-gradient(circle at 95% 8%, color-mix(in srgb, var(--brand-accent) 20%, #fff) 0, transparent 35%),
+			radial-gradient(circle at 8% 88%, color-mix(in srgb, var(--primary) 12%, #fff) 0, transparent 42%),
+			linear-gradient(165deg, #ffffff, var(--brand-cream));
+		border: 1px solid var(--line-soft);
+		border-radius: 20px;
+		padding: clamp(14px, 1.8vw, 22px);
+		margin-bottom: 16px;
+		box-shadow: 0 10px 24px rgba(60, 44, 20, 0.08);
+	}
+
+	.mesas-page .hero-topline {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		gap: 12px;
+		flex-wrap: wrap;
+	}
+
+	.mesas-page .hero-title {
+		margin: 8px 0 0;
+		display: flex;
+		flex-wrap: wrap;
+		align-items: baseline;
+		gap: 10px;
+	}
+
+	.mesas-page .hero-title h1 {
+		margin: 0;
+	}
+
+	.mesas-page .hero-meta {
+		color: var(--text-soft);
+		font-size: 13px;
+		font-weight: 600;
+		letter-spacing: 0.2px;
+	}
+
+	.mesas-page .hero-note {
+		margin: 10px 0 0;
+		color: #5f5549;
+		font-size: 13px;
+		font-weight: 500;
+	}
+
+	.mesas-page .legend {
+		margin-top: 14px;
+		display: flex;
+		flex-wrap: wrap;
+		gap: 10px;
+	}
+
+	.mesas-page .legend-item {
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+		padding: 5px 10px;
+		border-radius: 999px;
+		font-size: 11px;
+		font-weight: 700;
+		letter-spacing: 0.2px;
+		border: 1px solid var(--line-soft);
+		background: #fff;
+		color: #4e453b;
+	}
+
+	.mesas-page .legend-dot {
+		width: 9px;
+		height: 9px;
+		border-radius: 999px;
+		display: inline-block;
+	}
+
+	.mesas-page .legend-dot.libre { background: var(--ok); }
+	.mesas-page .legend-dot.ocupada { background: var(--busy); }
+	.mesas-page .legend-dot.reservada { background: var(--warn); }
+	.mesas-page .legend-dot.limpieza { background: var(--clean); }
+
+	.mesas-page .actions {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+		gap: 12px;
+	}
+
+	.mesas-page .actions form {
+		background: #fff;
+		border: 1px solid var(--line-soft);
+		border-radius: 14px;
+		box-shadow: 0 8px 16px rgba(37, 24, 5, 0.06);
+		padding: 8px;
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		flex-wrap: wrap;
+	}
+
+	.mesas-page .actions input,
+	.mesas-page .actions select {
+		min-width: 120px;
+		flex: 1;
+	}
+
+	.mesas-page .zone-card {
+		background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(255, 252, 247, 0.96));
+		border: 1px solid var(--line-soft);
+		border-radius: 18px;
+		padding: 14px;
+		box-shadow: 0 10px 20px rgba(45, 31, 8, 0.06);
+		margin-bottom: 14px;
+	}
+
+	.mesas-page .zone-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		gap: 10px;
+		margin-bottom: 12px;
+	}
+
+	.mesas-page .zone-header h2 {
+		margin: 0;
+		padding: 0;
+		border: 0;
+		font-size: 19px;
+		color: var(--brand-deep);
+	}
+
+	.mesas-page .zone-count {
+		font-size: 11px;
+		font-weight: 700;
+		color: #5f5549;
+		background: #f5eee3;
+		border: 1px solid #eadfce;
+		border-radius: 999px;
+		padding: 4px 9px;
+	}
+
+	.mesas-page .floor {
+		min-height: 320px;
+		border-radius: 16px;
+		border: 1px dashed #d6c7b4;
+		background:
+			linear-gradient(0deg, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0.85)),
+			linear-gradient(90deg, rgba(190, 160, 122, 0.12) 1px, transparent 1px),
+			linear-gradient(0deg, rgba(190, 160, 122, 0.12) 1px, transparent 1px);
+		background-size: auto, 22px 22px, 22px 22px;
+		position: relative;
+		overflow: auto;
+		padding: 6px;
+	}
+
+	.mesas-page .table {
+		width: 100px;
+		min-height: 94px;
+		border-radius: 20px;
+		text-decoration: none;
+		position: absolute;
+		transform: translate(-50%, -50%);
+		display: grid;
+		place-items: center;
+		gap: 2px;
+		padding: 8px;
+		border: 2px solid #9fd4bc;
+		color: #0f6b4a;
+		background: linear-gradient(165deg, #f2fff9, #dcf7eb);
+		box-shadow: 0 10px 16px rgba(14, 63, 41, 0.15);
+		transition: transform .16s ease, box-shadow .16s ease;
+		cursor: grab;
+		touch-action: none;
+	}
+
+	.mesas-page .table.is-dragging {
+		cursor: grabbing;
+		z-index: 25;
+		transition: none;
+		box-shadow: 0 20px 28px rgba(14, 63, 41, 0.24);
+	}
+
+	.mesas-page .table:hover {
+		transform: translate(-50%, calc(-50% - 3px));
+		box-shadow: 0 16px 22px rgba(14, 63, 41, 0.2);
+	}
+
+	.mesas-page .table b {
+		font-size: 17px;
+		line-height: 1;
+		letter-spacing: -0.3px;
+	}
+
+	.mesas-page .table small {
+		font-size: 10px;
+		font-weight: 600;
+		opacity: 0.92;
+	}
+
+	.mesas-page .table em {
+		margin-top: 2px;
+		font-size: 9px;
+		text-transform: uppercase;
+		letter-spacing: .6px;
+		font-style: normal;
+		font-weight: 800;
+	}
+
+	.mesas-page .table.ocupada {
+		border-color: #f2be98;
+		color: #8b3e12;
+		background: linear-gradient(165deg, #fff8f2, #ffe1c8);
+		box-shadow: 0 10px 16px rgba(110, 44, 5, 0.14);
+	}
+
+	.mesas-page .table.reservada {
+		border-color: #edd37d;
+		color: #7e6207;
+		background: linear-gradient(165deg, #fffef4, #fff1b9);
+	}
+
+	.mesas-page .table.limpieza,
+	.mesas-page .table.mantenimiento {
+		border-color: #a8c7ef;
+		color: #185097;
+		background: linear-gradient(165deg, #f5faff, #dfeefe);
+	}
+
+	.mesas-page .table.disponible,
+	.mesas-page .table.libre {
+		border-color: #9fd4bc;
+		color: #0f6b4a;
+		background: linear-gradient(165deg, #f2fff9, #dcf7eb);
+	}
+
+	.mesas-page .table.redonda {
+		border-radius: 999px;
+	}
+
+	.mesas-page .table.rectangular {
+		border-radius: 14px;
+		width: 108px;
+	}
+
+	.mesas-page .zone-empty {
+		min-height: 190px;
+		display: grid;
+		place-items: center;
+		color: #7e7468;
+		font-size: 14px;
+		font-weight: 600;
+		letter-spacing: .2px;
+	}
+
+	@media (max-width: 1024px) {
+		.mesas-page .mesas-hero {
+			padding: 14px;
+		}
+
+		.mesas-page .actions {
+			grid-template-columns: 1fr;
+		}
+
+		.mesas-page .actions form {
+			display: grid;
+			grid-template-columns: 1fr 1fr auto;
+			align-items: stretch;
+			gap: 6px;
+		}
+
+		.mesas-page .actions form input,
+		.mesas-page .actions form select {
+			min-height: 38px;
+		}
+
+		.mesas-page .actions form button {
+			min-height: 38px;
+			padding: 0 12px;
+		}
+
+		.mesas-page .floor {
+			min-height: 280px;
+		}
+	}
+
+	@media (max-width: 760px) {
+		.mesas-page .hero-topline {
+			align-items: flex-start;
+			flex-direction: column;
+			gap: 8px;
+		}
+
+		.mesas-page .hero-title {
+			align-items: flex-start;
+			flex-direction: column;
+			gap: 6px;
+		}
+
+		.mesas-page .legend {
+			gap: 6px;
+		}
+
+		.mesas-page .legend-item {
+			padding: 4px 8px;
+		}
+
+		.mesas-page .actions form {
+			grid-template-columns: 1fr;
+		}
+
+		.mesas-page .floor {
+			min-height: 250px;
+		}
+
+		.mesas-page .table {
+			width: 82px;
+			min-height: 78px;
+			padding: 6px;
+			border-width: 1.5px;
+		}
+
+		.mesas-page .table b {
+			font-size: 14px;
+		}
+
+		.mesas-page .table small {
+			font-size: 9px;
+		}
+
+		.mesas-page .table em {
+			font-size: 8px;
+			letter-spacing: 0.4px;
+		}
+
+		.mesas-page .zone-card {
+			padding: 12px;
+		}
+	}
+
+	@media (max-width: 480px) {
+		.mesas-page .mesas-hero {
+			border-radius: 16px;
+		}
+
+		.mesas-page .zone-header h2 {
+			font-size: 17px;
+		}
+
+		.mesas-page .floor {
+			min-height: 220px;
+		}
+
+		.mesas-page .table {
+			width: 74px;
+			min-height: 70px;
+		}
+
+		.mesas-page .table.rectangular {
+			width: 80px;
+		}
+	}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="mesas-page">
+	<section class="mesas-hero">
+		<div class="hero-topline">
+			<p class="eyebrow">MAPA OPERATIVO</p>
+			<span class="hero-meta">{{ zonas|length }} zona{{ '' if zonas|length == 1 else 's' }} activa{{ '' if zonas|length == 1 else 's' }}</span>
+		</div>
+
+		<div class="hero-title">
+			<h1>Mesas y zonas</h1>
+		</div>
+
+		<p class="hero-note">Vista clara para servicio rápido: toca una mesa para abrir comanda.</p>
+
+		<div class="legend" aria-label="Estados de mesa">
+			<span class="legend-item"><span class="legend-dot libre"></span>Libre</span>
+			<span class="legend-item"><span class="legend-dot ocupada"></span>Ocupada</span>
+			<span class="legend-item"><span class="legend-dot reservada"></span>Reservada</span>
+			<span class="legend-item"><span class="legend-dot limpieza"></span>Limpieza</span>
+		</div>
+	</section>
+
+	<div class="actions">
+		<form action="/zonas" method="post">
+			<input name="nombre" placeholder="Nueva zona" required>
+			<button>Crear zona</button>
+		</form>
+
+		<form action="/mesas" method="post">
+			<select name="zona_id" aria-label="Zona para nueva mesa">
+				{% for z in zonas %}
+				<option value="{{ z.id }}">{{ z.nombre }}</option>
+				{% endfor %}
+			</select>
+			<input name="nombre" placeholder="Mesa, ej. B-4" required>
+			<input name="capacidad" type="number" value="4" min="1" aria-label="Capacidad de mesa">
+			<button>Agregar mesa</button>
+		</form>
+	</div>
+
+	{% for z in zonas %}
+	<section class="zone-card">
+		<div class="zone-header">
+			<h2>{{ z.nombre }}</h2>
+			<span class="zone-count">{{ z.mesas|length }} mesa{{ '' if z.mesas|length == 1 else 's' }}</span>
+		</div>
+
+		<div class="floor">
+			{% if z.mesas %}
+				{% for m in z.mesas %}
+				<a
+					class="table {{ m.estado }} {{ m.forma }}"
+					data-mesa-id="{{ m.id }}"
+					data-mesa-estado="{{ m.estado }}"
+					style="left:{{ m.posicion_x }}%;top:{{ m.posicion_y }}%"
+					href="/comanda/{{ m.id }}"
+					title="Abrir comanda de {{ m.nombre }}"
+				>
+					<b>{{ m.nombre }}</b>
+					<small>{{ m.capacidad }} puestos</small>
+					<em>{{ m.estado }}</em>
+				</a>
+				{% endfor %}
+			{% else %}
+			<div class="zone-empty">Sin mesas configuradas en esta zona.</div>
+			{% endif %}
+		</div>
+	</section>
+	{% endfor %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+	(function () {
+		const tables = Array.from(document.querySelectorAll('.mesas-page .floor .table'));
+		if (!tables.length) return;
+
+		const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+		const round = (value) => Math.round(value * 100) / 100;
+		const saveTimers = new Map();
+
+		async function guardarPosicion(tableEl, x, y) {
+			const mesaId = tableEl.dataset.mesaId;
+			if (!mesaId) return;
+
+			const prevX = Number(tableEl.dataset.posX ?? x);
+			const prevY = Number(tableEl.dataset.posY ?? y);
+
+			try {
+				const response = await fetch(`/api/v1/mesas/${mesaId}`, {
+					method: 'PATCH',
+					headers: { 'Content-Type': 'application/json' },
+					credentials: 'same-origin',
+					body: JSON.stringify({
+						posicion_x: Math.round(x),
+						posicion_y: Math.round(y)
+					})
+				});
+
+				if (!response.ok) {
+					throw new Error(`HTTP ${response.status}`);
+				}
+
+				tableEl.dataset.posX = String(round(x));
+				tableEl.dataset.posY = String(round(y));
+			} catch (error) {
+				tableEl.style.left = `${prevX}%`;
+				tableEl.style.top = `${prevY}%`;
+				if (window.notify?.error) {
+					window.notify.error('No se pudo guardar', 'Intenta mover la mesa nuevamente');
+				}
+			}
+		}
+
+		tables.forEach((tableEl) => {
+			tableEl.dataset.posX = parseFloat(tableEl.style.left) || 0;
+			tableEl.dataset.posY = parseFloat(tableEl.style.top) || 0;
+
+			let dragging = false;
+			let moved = false;
+			let pointerId = null;
+			let floorEl = null;
+			let floorRect = null;
+			let nextX = Number(tableEl.dataset.posX);
+			let nextY = Number(tableEl.dataset.posY);
+
+			const endDrag = () => {
+				if (!dragging) return;
+				dragging = false;
+				tableEl.classList.remove('is-dragging');
+				document.body.classList.remove('no-select');
+
+				if (moved) {
+					clearTimeout(saveTimers.get(tableEl));
+					const timer = setTimeout(() => {
+						guardarPosicion(tableEl, nextX, nextY);
+					}, 120);
+					saveTimers.set(tableEl, timer);
+				}
+
+				setTimeout(() => {
+					moved = false;
+				}, 0);
+			};
+
+			tableEl.addEventListener('pointerdown', (event) => {
+				if (event.button !== 0) return;
+				floorEl = tableEl.closest('.floor');
+				if (!floorEl) return;
+
+				dragging = true;
+				moved = false;
+				pointerId = event.pointerId;
+				floorRect = floorEl.getBoundingClientRect();
+				tableEl.setPointerCapture(pointerId);
+				tableEl.classList.add('is-dragging');
+				document.body.classList.add('no-select');
+			});
+
+			tableEl.addEventListener('pointermove', (event) => {
+				if (!dragging || event.pointerId !== pointerId || !floorRect) return;
+
+				const localX = event.clientX - floorRect.left;
+				const localY = event.clientY - floorRect.top;
+				let xPct = (localX / floorRect.width) * 100;
+				let yPct = (localY / floorRect.height) * 100;
+
+				xPct = clamp(xPct, 5, 95);
+				yPct = clamp(yPct, 8, 92);
+
+				nextX = round(xPct);
+				nextY = round(yPct);
+				tableEl.style.left = `${nextX}%`;
+				tableEl.style.top = `${nextY}%`;
+				moved = true;
+			});
+
+			tableEl.addEventListener('pointerup', (event) => {
+				if (event.pointerId !== pointerId) return;
+				tableEl.releasePointerCapture(pointerId);
+				endDrag();
+			});
+
+			tableEl.addEventListener('pointercancel', () => {
+				endDrag();
+			});
+
+			tableEl.addEventListener('click', (event) => {
+				if (moved) {
+					event.preventDefault();
+					event.stopPropagation();
+				}
+			});
+		});
+	})();
+</script>
+{% endblock %}
