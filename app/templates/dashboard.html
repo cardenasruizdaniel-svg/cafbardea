@@ -1,0 +1,298 @@
+{% extends "base.html" %}{% block content %}
+<header>
+  <div><p class="eyebrow">OPERACIÓN DE HOY</p><h1>Buenos días</h1></div>
+  <a class="button" href="/mesas">Abrir plano</a>
+</header>
+
+<!-- KPIs Principales -->
+<section class="stats" id="kpi-section">
+  <article data-stat="ventas_cobradas">
+    <small>Ventas cobradas</small>
+    <strong class="stat-value" id="kpi-ingresos">${{ '{:,.0f}'.format(total) }}</strong>
+    <span class="kpi-tendencia" id="kpi-ingresos-tend"></span>
+  </article>
+  <article data-stat="comandas_abiertas">
+    <small>Comandas abiertas</small>
+    <strong class="stat-value" id="kpi-abiertas">{{ abiertas }}</strong>
+  </article>
+  <article data-stat="alertas_inventario">
+    <small>Alertas de inventario</small>
+    <strong class="stat-value" id="kpi-alertas">{{ bajos|length }}</strong>
+  </article>
+  <article>
+    <small>Ocupación mesas</small>
+    <strong class="stat-value" id="kpi-ocupacion">—</strong>
+  </article>
+  <article>
+    <small>Ticket promedio</small>
+    <strong class="stat-value" id="kpi-ticket">—</strong>
+  </article>
+</section>
+
+<!-- Gráficos -->
+<div class="two-col" style="margin-top:1.5rem">
+  <section class="panel">
+    <h2>Ventas por hora</h2>
+    <canvas id="chart-horas" height="200"></canvas>
+  </section>
+  <section class="panel">
+    <h2>Top 5 productos</h2>
+    <canvas id="chart-productos" height="200"></canvas>
+  </section>
+</div>
+<div class="two-col" style="margin-top:1rem">
+  <section class="panel">
+    <h2>Distribución por categoría</h2>
+    <canvas id="chart-categorias" height="200"></canvas>
+  </section>
+  <section class="panel">
+    <h2>Stock por reponer</h2>
+    {% if bajos %}
+    <table><tr><th>Producto</th><th>Disponible</th><th>Mínimo</th></tr>
+    {% for p in bajos %}<tr><td>{{p.nombre}}</td><td>{{p.existencias}}</td><td>{{p.stock_minimo}}</td></tr>{% endfor %}
+    </table>
+    {% else %}<p>Todo el inventario sobre el mínimo.</p>{% endif %}
+  </section>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+// ============================================================
+// Colores globales
+// ============================================================
+const GOLD   = '#b45309';
+const GOLD2  = '#fbbf24';
+const DARK   = '#1c1917';
+const GRAY   = '#78716c';
+const COLORS = ['#b45309','#fbbf24','#d97706','#92400e','#78350f',
+                 '#ca8a04','#a16207','#f59e0b','#fcd34d','#fde68a'];
+
+Chart.defaults.color = GRAY;
+Chart.defaults.font.family = 'system-ui, sans-serif';
+
+// ============================================================
+// Instancias de gráficos
+// ============================================================
+let chartHoras, chartProductos, chartCategorias;
+
+function crearGraficoHoras(datos) {
+  const ctx = document.getElementById('chart-horas').getContext('2d');
+  if (chartHoras) chartHoras.destroy();
+  chartHoras = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: datos.map(d => d.label),
+      datasets: [{
+        label: 'Ingresos ($)',
+        data: datos.map(d => d.total),
+        borderColor: GOLD,
+        backgroundColor: GOLD + '22',
+        fill: true,
+        tension: 0.4,
+        pointRadius: 3
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, grid: { color: '#3c3836' } },
+        x: { grid: { color: '#3c3836' } }
+      }
+    }
+  });
+}
+
+function crearGraficoProductos(datos) {
+  const ctx = document.getElementById('chart-productos').getContext('2d');
+  if (chartProductos) chartProductos.destroy();
+  chartProductos = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: datos.map(d => d.nombre),
+      datasets: [{
+        label: 'Ingresos ($)',
+        data: datos.map(d => d.ingresos),
+        backgroundColor: COLORS.slice(0, datos.length),
+        borderRadius: 4
+      }]
+    },
+    options: {
+      responsive: true,
+      indexAxis: 'y',
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { beginAtZero: true, grid: { color: '#3c3836' } },
+        y: { grid: { display: false } }
+      }
+    }
+  });
+}
+
+function crearGraficoCategorias(datos) {
+  const ctx = document.getElementById('chart-categorias').getContext('2d');
+  if (chartCategorias) chartCategorias.destroy();
+  if (!datos.length) {
+    ctx.canvas.parentElement.innerHTML += '<p style="color:#78716c;text-align:center;padding:2rem">Sin ventas hoy</p>';
+    return;
+  }
+  chartCategorias = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: datos.map(d => d.categoria),
+      datasets: [{
+        data: datos.map(d => d.ingresos),
+        backgroundColor: COLORS.slice(0, datos.length),
+        borderColor: DARK,
+        borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position: 'right' },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => ` ${ctx.label}: $${ctx.raw.toLocaleString('es-CO', {maximumFractionDigits:0})} (${datos[ctx.dataIndex].porcentaje}%)`
+          }
+        }
+      }
+    }
+  });
+}
+
+// ============================================================
+// Actualizar KPIs desde API
+// ============================================================
+async function actualizarKPIs() {
+  try {
+    const r = await fetch('/api/v1/dashboard/kpis');
+    if (!r.ok) return;
+    const d = await r.json();
+
+    document.getElementById('kpi-ingresos').textContent =
+      '$' + d.ingresos_hoy.toLocaleString('es-CO', {maximumFractionDigits: 0});
+    document.getElementById('kpi-abiertas').textContent = d.transacciones_hoy;
+    document.getElementById('kpi-alertas').textContent = d.alertas_stock;
+    document.getElementById('kpi-ocupacion').textContent = d.ocupacion_pct + '%';
+    document.getElementById('kpi-ticket').textContent =
+      '$' + d.ticket_promedio_hoy.toLocaleString('es-CO', {maximumFractionDigits: 0});
+
+    // Tendencia vs ayer
+    const tend = document.getElementById('kpi-ingresos-tend');
+    if (tend) {
+      const pct = d.vs_ayer.variacion_pct;
+      const icon = pct > 0 ? '▲' : pct < 0 ? '▼' : '—';
+      const color = pct > 0 ? '#22c55e' : pct < 0 ? '#ef4444' : GRAY;
+      tend.textContent = `${icon} ${Math.abs(pct)}% vs ayer`;
+      tend.style.color = color;
+      tend.style.fontSize = '0.75rem';
+      tend.style.display = 'block';
+    }
+  } catch(e) { /* silent */ }
+}
+
+async function actualizarGraficos() {
+  try {
+    const [resHoras, resProd, resCat] = await Promise.all([
+      fetch('/api/v1/dashboard/ventas-por-hora'),
+      fetch('/api/v1/dashboard/top-productos?limite=5'),
+      fetch('/api/v1/dashboard/categorias')
+    ]);
+    if (resHoras.ok) crearGraficoHoras(await resHoras.json());
+    if (resProd.ok)  crearGraficoProductos(await resProd.json());
+    if (resCat.ok)   crearGraficoCategorias(await resCat.json());
+  } catch(e) { /* silent */ }
+}
+
+// ============================================================
+// Inicializar y programar actualizaciones
+// ============================================================
+document.addEventListener('DOMContentLoaded', () => {
+  actualizarKPIs();
+  actualizarGraficos();
+
+  // KPIs cada 30 segundos, gráficos cada 2 minutos
+  setInterval(actualizarKPIs, 30_000);
+  setInterval(actualizarGraficos, 120_000);
+});
+
+// ============================================================
+// WebSocket handlers (Fase 6 - actualizaciones en vivo)
+// ============================================================
+document.addEventListener('DOMContentLoaded', () => {
+  if (!window.wsClient) return;
+
+  wsClient.on('venta.pagada', (datos) => {
+    UIUpdates.mostrarNotificacion('Venta Registrada', `$${datos.total_venta}`, 'success');
+    setTimeout(actualizarKPIs, 500);
+  });
+
+  wsClient.on('comanda.creada', (datos) => {
+    UIUpdates.mostrarNotificacion('Nueva Comanda', `Mesa ${datos.mesa_nombre}`, 'info');
+    setTimeout(actualizarKPIs, 500);
+  });
+
+  wsClient.on('comanda.entregada', () => setTimeout(actualizarKPIs, 500));
+
+  wsClient.on('producto.stock_bajo', (datos) => {
+    UIUpdates.mostrarNotificacion('Stock Bajo', `${datos.producto_nombre} bajo el mínimo`, 'warning');
+    setTimeout(actualizarKPIs, 500);
+  });
+});
+</script>
+{% endblock %}
+
+<!-- FASE 6: WebSocket Handlers para Dashboard -->
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        if (!window.wsClient) return;
+        
+        // Actualizar contador de ventas en tiempo real
+        wsClient.on('venta.pagada', (datos) => {
+            UIUpdates.mostrarNotificacion('Venta Registrada', `$${datos.total_venta}`, 'success');
+            
+            // Incrementar contador
+            const statVentas = document.querySelector('[data-stat="ventas_cobradas"] .stat-value');
+            if (statVentas) {
+                const currentValue = parseFloat(statVentas.textContent.replace(/[$,]/g, ''));
+                const newValue = currentValue + (datos.total_venta || 0);
+                UIUpdates.actualizarStat('ventas_cobradas', `$${newValue.toLocaleString('es-CO', {maximumFractionDigits: 0})}`);
+            }
+        });
+        
+        // Actualizar comandas abiertas
+        wsClient.on('comanda.creada', (datos) => {
+            UIUpdates.mostrarNotificacion('Nueva Comanda', `Mesa ${datos.mesa_nombre}`, 'info');
+            
+            const statComandas = document.querySelector('[data-stat="comandas_abiertas"] .stat-value');
+            if (statComandas) {
+                const currentValue = parseInt(statComandas.textContent);
+                UIUpdates.actualizarStat('comandas_abiertas', currentValue + 1);
+            }
+        });
+        
+        wsClient.on('comanda.entregada', (datos) => {
+            const statComandas = document.querySelector('[data-stat="comandas_abiertas"] .stat-value');
+            if (statComandas) {
+                const currentValue = parseInt(statComandas.textContent);
+                UIUpdates.actualizarStat('comandas_abiertas', Math.max(0, currentValue - 1));
+            }
+        });
+        
+        // Alertar sobre cambios de inventario
+        wsClient.on('producto.stock_bajo', (datos) => {
+            UIUpdates.mostrarNotificacion('Stock Bajo', `${datos.producto_nombre} está bajo el mínimo`, 'warning');
+            
+            const statAlertas = document.querySelector('[data-stat="alertas_inventario"] .stat-value');
+            if (statAlertas) {
+                const currentValue = parseInt(statAlertas.textContent);
+                UIUpdates.actualizarStat('alertas_inventario', currentValue + 1);
+            }
+        });
+    });
+</script>
+{% endblock %}

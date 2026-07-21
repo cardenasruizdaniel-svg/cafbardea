@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#121826">
+    <title>CAFBARDLA Mobile | {{ empresa.nombre }}</title>
+    <link rel="stylesheet" href="/static/css/mobile-platform.css">
+</head>
+<body>
+    <header class="mobile-header">
+        <div>
+            <p class="badge">PLATAFORMA MOVIL</p>
+            <h1>{{ empresa.nombre }}</h1>
+            <p class="meta">{{ usuario.nombre }} · {{ usuario.rol | title }}</p>
+        </div>
+        <a class="switch-web" href="/">Ir a version web</a>
+    </header>
+
+    <section class="mobile-stats">
+        <article>
+            <span>Ventas hoy</span>
+            <strong>${{ '{:,.0f}'.format(total_ventas) }}</strong>
+        </article>
+        <article>
+            <span>Comandas pendientes</span>
+            <strong>{{ pendientes_cocina }}</strong>
+        </article>
+        <article>
+            <span>Mesas ocupadas</span>
+            <strong>{{ mesas_ocupadas }}</strong>
+        </article>
+    </section>
+
+    <main class="mobile-actions">
+        <a class="action-card" href="/mesas">
+            <h2>Mesas</h2>
+            <p>Tomar pedido y mover mesas</p>
+        </a>
+        <a class="action-card" href="/comanda/1">
+            <h2>Comanda rapida</h2>
+            <p>Agregar productos al instante</p>
+        </a>
+        <a class="action-card" href="/cocina">
+            <h2>Cocina</h2>
+            <p>Ver pendientes y estados</p>
+        </a>
+        <a class="action-card" href="/domicilios">
+            <h2>Domicilios</h2>
+            <p>Controlar entregas en ruta</p>
+        </a>
+    </main>
+
+    <nav class="bottom-nav">
+        <a href="/mobile" class="active">Inicio</a>
+        <a href="/mesas">Mesas</a>
+        <a href="/cocina">Cocina</a>
+        <a href="/logout">Salir</a>
+    </nav>
+</body>
+</html>

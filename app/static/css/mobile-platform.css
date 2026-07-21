@@ -1,0 +1,139 @@
+:root {
+  --bg: #111827;
+  --panel: #1f2937;
+  --panel-soft: #273449;
+  --text: #f9fafb;
+  --muted: #cbd5e1;
+  --accent: #f59e0b;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: radial-gradient(circle at 20% 0%, #243447 0%, transparent 42%), var(--bg);
+  color: var(--text);
+  font-family: "Segoe UI", Arial, sans-serif;
+  padding: 18px 14px 92px;
+}
+
+.mobile-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.badge {
+  margin: 0 0 6px;
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.4px;
+}
+
+.mobile-header h1 {
+  margin: 0;
+  font-size: 28px;
+}
+
+.meta {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.switch-web {
+  text-decoration: none;
+  color: #111827;
+  background: var(--accent);
+  padding: 8px 10px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.mobile-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.mobile-stats article {
+  background: linear-gradient(160deg, var(--panel) 0%, var(--panel-soft) 100%);
+  border-radius: 14px;
+  padding: 12px;
+  border: 1px solid rgba(245, 158, 11, 0.18);
+}
+
+.mobile-stats span {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.mobile-stats strong {
+  display: block;
+  margin-top: 5px;
+  font-size: 20px;
+}
+
+.mobile-actions {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.action-card {
+  text-decoration: none;
+  color: var(--text);
+  background: linear-gradient(160deg, #1f2937 0%, #101926 100%);
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 14px;
+  padding: 14px;
+}
+
+.action-card h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.action-card p {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.bottom-nav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #0b1220;
+  border-top: 1px solid rgba(148, 163, 184, 0.2);
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.bottom-nav a {
+  text-decoration: none;
+  color: var(--muted);
+  text-align: center;
+  padding: 12px 4px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.bottom-nav a.active {
+  color: var(--accent);
+}
+
+@media (max-width: 640px) {
+  .mobile-stats {
+    grid-template-columns: 1fr;
+  }
+}

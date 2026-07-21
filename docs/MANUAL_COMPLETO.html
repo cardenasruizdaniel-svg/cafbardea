@@ -1,0 +1,1181 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc 3.10" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>MANUAL_COMPLETO</title>
+  <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: 1.5em;}
+    div.column{flex: auto;}
+    @media screen {
+    div.columns{gap: min(4vw, 1.5em);}
+    div.column{overflow-x: auto;}
+    }
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+    /* CSS for syntax highlighting */
+    html { -webkit-text-size-adjust: 100%; }
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    .sourceCode { overflow: visible; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {   }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+    code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #7d9029; } /* Attribute */
+    code span.bn { color: #40a070; } /* BaseN */
+    code span.bu { color: #008000; } /* BuiltIn */
+    code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4070a0; } /* Char */
+    code span.cn { color: #880000; } /* Constant */
+    code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+    code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+    code span.dt { color: #902000; } /* DataType */
+    code span.dv { color: #40a070; } /* DecVal */
+    code span.er { color: #ff0000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #40a070; } /* Float */
+    code span.fu { color: #06287e; } /* Function */
+    code span.im { color: #008000; font-weight: bold; } /* Import */
+    code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+    code span.op { color: #666666; } /* Operator */
+    code span.ot { color: #007020; } /* Other */
+    code span.pp { color: #bc7a00; } /* Preprocessor */
+    code span.sc { color: #4070a0; } /* SpecialChar */
+    code span.ss { color: #bb6688; } /* SpecialString */
+    code span.st { color: #4070a0; } /* String */
+    code span.va { color: #19177c; } /* Variable */
+    code span.vs { color: #4070a0; } /* VerbatimString */
+    code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
+  <link rel="stylesheet" href="style.css" />
+
+        <style>
+        body { 
+            font-family: 'Segoe UI', Arial, sans-serif; 
+            line-height: 1.6; 
+            color: #333;
+            margin: 40px;
+        }
+        h1 { color: #2c3e50; border-bottom: 3px solid #3498db; padding-bottom: 10px; }
+        h2 { color: #34495e; margin-top: 30px; border-left: 4px solid #3498db; padding-left: 10px; }
+        h3 { color: #7f8c8d; }
+        code { 
+            background-color: #f4f4f4; 
+            padding: 2px 6px; 
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+        pre { 
+            background-color: #2c3e50; 
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-size: 0.9em;
+        }
+        table { 
+            border-collapse: collapse; 
+            width: 100%; 
+            margin: 20px 0;
+        }
+        th, td { 
+            border: 1px solid #bdc3c7; 
+            padding: 12px; 
+            text-align: left;
+        }
+        th { 
+            background-color: #34495e; 
+            color: white;
+        }
+        a { color: #3498db; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        .emoji { font-size: 1.2em; }
+        blockquote {
+            border-left: 4px solid #3498db;
+            margin: 20px 0;
+            padding-left: 20px;
+            font-style: italic;
+            color: #7f8c8d;
+        }
+        </style>
+        </head>
+<body>
+<h1
+id="cafbardla-pos---manual-completo-de-instalación-configuración-y-funcionamiento">📘
+CafBarDLA POS - MANUAL COMPLETO DE INSTALACIÓN, CONFIGURACIÓN Y
+FUNCIONAMIENTO</h1>
+<p><strong>Versión:</strong> 0.1.0<br />
+<strong>Fecha:</strong> 2026-07-20<br />
+<strong>Empresa:</strong> DLA Tecnología<br />
+<strong>Soporte:</strong> support@dlatecnologia.com</p>
+<hr />
+<h2 id="tabla-de-contenidos">📚 Tabla de Contenidos</h2>
+<ol type="1">
+<li><a href="#descripción-general">Descripción General</a></li>
+<li><a href="#requisitos">Requisitos del Sistema</a></li>
+<li><a href="#instalación-windows">Instalación Windows (Método
+Manual)</a></li>
+<li><a href="#instalación-ejecutable">Instalación Windows
+(Ejecutable)</a></li>
+<li><a href="#configuración">Configuración de la Aplicación</a></li>
+<li><a href="#parametrización">Parametrización del Sistema</a></li>
+<li><a href="#funcionamiento">Manual de Funcionamiento</a></li>
+<li><a href="#nube">Deployment en la Nube</a></li>
+<li><a href="#mantenimiento">Mantenimiento y Soporte</a></li>
+</ol>
+<hr />
+<h2 id="descripción-general">🎯 Descripción General</h2>
+<p><strong>CafBarDLA</strong> es un sistema de Punto de Venta (POS)
+profesional diseñado específicamente para cafeterías, bares y
+restaurantes.</p>
+<h3 id="características-principales">Características Principales</h3>
+<p>✅ <strong>FASE 1-4: Sistema POS Completo</strong> - Gestión de
+comandas y mesas - Control de inventario - Gestión de clientes y
+proveedores - Reportes y análisis de ventas - Facturación electrónica -
+Nomina de empleados</p>
+<p>✅ <strong>FASE 5: Sistema Enterprise</strong> - Control de acceso y
+permisos - Auditoría de operaciones - Backups automáticos -
+Sincronización multi-sucursal</p>
+<p>✅ <strong>FASE 6: Sistema de WebSocket</strong> - Notificaciones en
+tiempo real - Actualizaciones de stock en vivo - Pedidos sincronizados
+entre dispositivos</p>
+<p>✅ <strong>FASE 7: Mobile API</strong> - Aplicación móvil iOS/Android
+- Toma de pedidos desde mesa - Cierre de caja móvil</p>
+<p>✅ <strong>FASE 8: Kitchen Display System (KDS)</strong> - Pantalla
+de cocina en tiempo real - Control de órdenes - Priorización de
+pedidos</p>
+<h3 id="arquitectura-técnica">Arquitectura Técnica</h3>
+<pre><code>┌─────────────────────────────────────────────────────────┐
+│                   CLIENTE (Frontend)                    │
+│              HTML5 + JavaScript + WebSocket            │
+└────────────────────┬────────────────────────────────────┘
+                     │ HTTP/HTTPS
+┌────────────────────▼────────────────────────────────────┐
+│                 FastAPI (Backend)                       │
+│         Python 3.14 + SQLAlchemy + Uvicorn             │
+│                 4 Worker Processes                      │
+└────────────────────┬────────────────────────────────────┘
+                     │ SQL
+┌────────────────────▼────────────────────────────────────┐
+│            Base de Datos (PostgreSQL/SQLite)           │
+│         Alembic Migrations + SQLAlchemy ORM           │
+└─────────────────────────────────────────────────────────┘</code></pre>
+<hr />
+<h2 id="requisitos">🖥️ Requisitos del Sistema</h2>
+<h3 id="para-windows-servidor">Para Windows (Servidor)</h3>
+<table>
+<thead>
+<tr>
+<th>Componente</th>
+<th>Requisito</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>SO</strong></td>
+<td>Windows 10 / Windows 11 / Windows Server 2019+</td>
+</tr>
+<tr>
+<td><strong>Procesador</strong></td>
+<td>Intel Core i5 o equivalente (2+ núcleos)</td>
+</tr>
+<tr>
+<td><strong>RAM</strong></td>
+<td>4 GB mínimo, 8 GB recomendado</td>
+</tr>
+<tr>
+<td><strong>Disco</strong></td>
+<td>2 GB libres (más para backups)</td>
+</tr>
+<tr>
+<td><strong>Red</strong></td>
+<td>Conexión Ethernet confiable</td>
+</tr>
+<tr>
+<td><strong>Python</strong></td>
+<td>Python 3.10+ (incluido en instalador)</td>
+</tr>
+<tr>
+<td><strong>PostgreSQL</strong></td>
+<td>13+ (opcional, SQLite incluido)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="para-clientes-terminales-pos">Para Clientes (Terminales
+POS)</h3>
+<table>
+<thead>
+<tr>
+<th>Dispositivo</th>
+<th>Requisito</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Windows</strong></td>
+<td>Windows 10+ / Chrome / Firefox / Edge</td>
+</tr>
+<tr>
+<td><strong>Tablet</strong></td>
+<td>iPad / Android 10+</td>
+</tr>
+<tr>
+<td><strong>Smartphone</strong></td>
+<td>iOS 13+ / Android 10+</td>
+</tr>
+<tr>
+<td><strong>Conexión</strong></td>
+<td>Red WiFi o LAN (mín. 5 Mbps)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="requisitos-de-red">Requisitos de Red</h3>
+<pre><code>┌──────────────────────────────────────┐
+│     Servidor CafBarDLA               │
+│     IP: 192.168.1.100:8000           │
+└─────────────┬───────────────┬────────┘
+              │               │
+     ┌────────▼──────┐  ┌─────▼──────┐
+     │  Terminal 1   │  │  Tablet 1  │
+     │ 192.168.1.101 │  │192.168.1.50│
+     └───────────────┘  └────────────┘
+     ┌────────────────┐  ┌────────────┐
+     │  Terminal 2    │  │ Smartphone │
+     │ 192.168.1.102  │  │192.168.1.51│
+     └────────────────┘  └────────────┘</code></pre>
+<p><strong>Requerimientos de Red:</strong> - Router con DHCP habilitado
+- Ancho de banda: ≥ 50 Mbps entre terminales - Latencia: ≤ 100 ms -
+Pérdida de paquetes: ≤ 1%</p>
+<hr />
+<h2 id="instalación-windows">📦 Instalación Windows (Método Manual)</h2>
+<h3 id="paso-1-preparar-el-servidor">Paso 1: Preparar el Servidor</h3>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode powershell"><code class="sourceCode powershell"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Abrir PowerShell como Administrador</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="co"># (Click derecho → Ejecutar como administrador)</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. Crear carpeta de instalación</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="fu">New-Item</span> <span class="op">-</span>ItemType Directory <span class="op">-</span>Path <span class="st">&quot;D:\CafBarDLA&quot;</span> <span class="op">-</span>Force</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="co"># 2. Cambiar a esa carpeta</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="fu">cd</span> D<span class="op">:</span>\CafBarDLA</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="co"># 3. Descargar proyecto (o copiar)</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Opción A: Desde Git</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>git clone https<span class="op">://</span>github<span class="op">.</span><span class="fu">com</span><span class="op">/</span>tuusuario<span class="op">/</span>CafBarDLA<span class="op">.</span><span class="fu">git</span> <span class="op">.</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a><span class="co"># Opción B: Descargar ZIP y extraer en D:\CafBarDLA</span></span></code></pre></div>
+<h3 id="paso-2-instalar-python-y-dependencias">Paso 2: Instalar Python y
+Dependencias</h3>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode powershell"><code class="sourceCode powershell"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Verificar si Python está instalado</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>python <span class="op">--</span>version</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Si no está instalado:</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Descargar de https://www.python.org/downloads/</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Instalar versión 3.11 o superior</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="co"># ✅ Marcar: &quot;Add Python to PATH&quot; durante instalación</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Verificar pip</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>pip <span class="op">--</span>version</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Actualizar pip</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>python <span class="op">-</span>m pip install <span class="op">--</span>upgrade pip</span></code></pre></div>
+<h3 id="paso-3-crear-entorno-virtual">Paso 3: Crear Entorno Virtual</h3>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode powershell"><code class="sourceCode powershell"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># En D:\CafBarDLA</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Crear entorno virtual</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>python <span class="op">-</span>m venv <span class="op">.</span><span class="fu">buildenv</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Activar entorno virtual</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a><span class="op">.</span><span class="fu">buildenv</span>\Scripts\Activate<span class="op">.</span><span class="fu">ps1</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Si falla con error de permisos:</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a><span class="fu">Set-ExecutionPolicy</span> <span class="op">-</span>ExecutionPolicy RemoteSigned <span class="op">-</span>Scope CurrentUser</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a><span class="op">.</span><span class="fu">buildenv</span>\Scripts\Activate<span class="op">.</span><span class="fu">ps1</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Verificar (verás (.buildenv) al inicio de la línea de comandos)</span></span></code></pre></div>
+<h3 id="paso-4-instalar-dependencias-python">Paso 4: Instalar
+Dependencias Python</h3>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode powershell"><code class="sourceCode powershell"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Asegúrate que el entorno virtual esté activado (.buildenv debe verse)</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Instalar dependencias</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>pip install <span class="op">-</span>r requirements<span class="op">.</span><span class="fu">txt</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Instalar herramientas adicionales</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>pip install alembic sqlalchemy-utils python-multipart</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Verificar instalación</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>pip list</span></code></pre></div>
+<h3 id="paso-5-configurar-la-base-de-datos">Paso 5: Configurar la Base
+de Datos</h3>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode powershell"><code class="sourceCode powershell"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Opción A: SQLite (Recomendado para inicio)</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="co"># No requiere configuración, se crea automáticamente</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Opción B: PostgreSQL (Para producción real)</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Descargar e instalar desde https://www.postgresql.org/download/windows/</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Durante instalación:</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a><span class="co">#   - Username: postgres</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a><span class="co">#   - Password: (guardar de forma segura)</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a><span class="co">#   - Puerto: 5432</span></span></code></pre></div>
+<h3 id="paso-6-configurar-variables-de-entorno">Paso 6: Configurar
+Variables de Entorno</h3>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode powershell"><code class="sourceCode powershell"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Copiar archivo de ejemplo</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="fu">Copy-Item</span> <span class="op">.</span><span class="fu">env</span><span class="op">.</span><span class="fu">production</span><span class="op">.</span><span class="fu">example</span> <span class="op">-</span>Destination <span class="op">.</span><span class="fu">env</span><span class="op">.</span><span class="fu">production</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Editar el archivo .env.production</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>notepad <span class="op">.</span><span class="fu">env</span><span class="op">.</span><span class="fu">production</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Cambiar estas líneas (IMPORTANTE):</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Para SQLite:</span></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>DATABASE_URL<span class="op">=</span>sqlite<span class="op">:///./</span>cafbardla_prod<span class="op">.</span><span class="fu">db</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Para PostgreSQL (cambiar PASSWORD y HOST):</span></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>DATABASE_URL<span class="op">=</span>postgresql<span class="op">://</span>user<span class="op">:</span>PASSWORD@localhost<span class="op">:</span><span class="dv">5432</span><span class="op">/</span>cafbardla</span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a><span class="co"># Generar claves JWT (necesitas tener el entorno activado)</span></span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a><span class="co"># En PowerShell:</span></span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>python <span class="op">-</span>c <span class="st">&quot;import secrets; print(&#39;JWT_SECRET_KEY=&#39; + secrets.token_urlsafe(32))&quot;</span></span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>python <span class="op">-</span>c <span class="st">&quot;import secrets; print(&#39;SESSION_SECRET_KEY=&#39; + secrets.token_urlsafe(32))&quot;</span></span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a><span class="co"># Copiar los valores generados al .env.production</span></span></code></pre></div>
+<h3 id="paso-7-inicializar-la-base-de-datos">Paso 7: Inicializar la Base
+de Datos</h3>
+<div class="sourceCode" id="cb9"><pre
+class="sourceCode powershell"><code class="sourceCode powershell"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Ejecutar migraciones Alembic</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>alembic upgrade head</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Verificar que se creó la BD (si es SQLite)</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Debe aparecer: cafbardla_prod.db en D:\CafBarDLA</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Verificar BD</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a><span class="fu">ls</span> <span class="op">*.</span><span class="fu">db</span></span></code></pre></div>
+<h3 id="paso-8-ejecutar-la-aplicación">Paso 8: Ejecutar la
+Aplicación</h3>
+<div class="sourceCode" id="cb10"><pre
+class="sourceCode powershell"><code class="sourceCode powershell"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Iniciar servidor FastAPI</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>uvicorn app<span class="op">.</span><span class="fu">main</span><span class="op">:</span>app <span class="op">--</span>host <span class="dv">0.0</span><span class="op">.</span><span class="dv">0.0</span> <span class="op">--</span>port <span class="dv">8000</span> <span class="op">--</span>workers <span class="dv">4</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Verás mensajes como:</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="co"># INFO:     Uvicorn running on http://0.0.0.0:8000</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a><span class="co"># INFO:     Started 4 worker processes</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Presiona CTRL+C para detener</span></span></code></pre></div>
+<h3 id="instalación-completada">✅ ¡Instalación Completada!</h3>
+<p>Accede a la aplicación: - <strong>Interfaz Web:</strong>
+http://localhost:8000 - <strong>Documentación API:</strong>
+http://localhost:8000/docs - <strong>Usuario por defecto:</strong> admin
+/ admin</p>
+<hr />
+<h2 id="instalación-ejecutable">🚀 Instalación Windows (Ejecutable)</h2>
+<h3 id="opción-a-descargar-instalador-más-fácil">Opción A: Descargar
+Instalador (Más Fácil)</h3>
+<div class="sourceCode" id="cb11"><pre
+class="sourceCode powershell"><code class="sourceCode powershell"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. Descargar CafBarDLA-Setup.exe</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Desde: https://releases.cafbardla.com/CafBarDLA-Setup.exe</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="co"># 2. Ejecutar instalador</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="op">.</span>\CafBarDLA-Setup<span class="op">.</span><span class="fu">exe</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a><span class="co"># 3. Seguir asistente:</span></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a><span class="co">#    - Aceptar términos</span></span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a><span class="co">#    - Seleccionar carpeta de instalación (ej: C:\Program Files\CafBarDLA)</span></span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a><span class="co">#    - Crear atajo de escritorio (opcional)</span></span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a><span class="co">#    - Finalizar</span></span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a><span class="co"># 4. La aplicación se ejecutará automáticamente</span></span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a><span class="co"># Acceder a: http://localhost:8000</span></span></code></pre></div>
+<h3 id="opción-b-compilar-instalador-localmente">Opción B: Compilar
+Instalador Localmente</h3>
+<div class="sourceCode" id="cb12"><pre
+class="sourceCode powershell"><code class="sourceCode powershell"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Requisitos previos:</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="co"># - Inno Setup instalado (https://jrsoftware.org/isdl.php)</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="co"># - Completar pasos 1-7 de &quot;Instalación Manual&quot;</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="fu">cd</span> D<span class="op">:</span>\CafBarDLA</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Compilar ejecutable con PyInstaller</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>python <span class="op">-</span>m PyInstaller launcher<span class="op">.</span><span class="fu">py</span> `</span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>    <span class="op">--</span>onefile `</span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>    <span class="op">--</span>windowed `</span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">--</span>name CafBarDLA `</span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>    <span class="op">--</span>icon app<span class="op">/</span>static<span class="op">/</span>favicon<span class="op">.</span><span class="fu">ico</span> `</span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>    <span class="op">--</span>distpath dist_production `</span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>    <span class="op">--</span>add-data <span class="st">&quot;app/templates;app/templates&quot;</span> `</span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>    <span class="op">--</span>add-data <span class="st">&quot;app/static;app/static&quot;</span> `</span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>    <span class="op">--</span>add-data <span class="st">&quot;.env.production;.&quot;</span></span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a><span class="co"># Esperar a que se compile...</span></span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a><span class="co"># Resultado: dist_production\CafBarDLA.exe</span></span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-21"><a href="#cb12-21" aria-hidden="true" tabindex="-1"></a><span class="co"># Compilar instalador</span></span>
+<span id="cb12-22"><a href="#cb12-22" aria-hidden="true" tabindex="-1"></a><span class="op">.</span>\scripts\build_installer<span class="op">.</span><span class="fu">ps1</span></span>
+<span id="cb12-23"><a href="#cb12-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-24"><a href="#cb12-24" aria-hidden="true" tabindex="-1"></a><span class="co"># Resultado: installer\Output\CafBarDLA-Setup.exe</span></span></code></pre></div>
+<hr />
+<h2 id="configuración">⚙️ Configuración de la Aplicación</h2>
+<h3 id="archivo-.env.production">Archivo .env.production</h3>
+<p>Ubicación: <code>D:\CafBarDLA\.env.production</code></p>
+<div class="sourceCode" id="cb13"><pre
+class="sourceCode ini"><code class="sourceCode ini"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co"># ============================================</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="co"># CONFIGURACIÓN DE BASE DE DATOS</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="co"># ============================================</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a><span class="co"># SQLite (Desarrollo/Pruebas)</span></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a><span class="dt">DATABASE_URL</span><span class="ot">=</span><span class="st">sqlite:///./cafbardla_prod.db</span></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a><span class="co"># PostgreSQL (Producción)</span></span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a><span class="co"># DATABASE_URL=postgresql://user:password@localhost:5432/cafbardla</span></span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a><span class="co"># ============================================</span></span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a><span class="co"># SEGURIDAD (IMPORTANTE - CAMBIAR EN PRODUCCIÓN)</span></span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a><span class="co"># ============================================</span></span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a><span class="dt">JWT_SECRET_KEY</span><span class="ot">=</span><span class="st">ZWhwTz3FusQdrtU1SUnG6_tREmcJM6HBHBGyyfGgAO0</span></span>
+<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a><span class="dt">SESSION_SECRET_KEY</span><span class="ot">=</span><span class="st">deJ_iBzbxVs_mo3KkkAhU_BABnsjTg5aXlpH-tylDoM</span></span>
+<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-18"><a href="#cb13-18" aria-hidden="true" tabindex="-1"></a><span class="co"># ============================================</span></span>
+<span id="cb13-19"><a href="#cb13-19" aria-hidden="true" tabindex="-1"></a><span class="co"># ENTORNO DE EJECUCIÓN</span></span>
+<span id="cb13-20"><a href="#cb13-20" aria-hidden="true" tabindex="-1"></a><span class="co"># ============================================</span></span>
+<span id="cb13-21"><a href="#cb13-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-22"><a href="#cb13-22" aria-hidden="true" tabindex="-1"></a><span class="dt">ENVIRONMENT</span><span class="ot">=</span><span class="st">production      # development | production</span></span>
+<span id="cb13-23"><a href="#cb13-23" aria-hidden="true" tabindex="-1"></a><span class="dt">DEBUG</span><span class="ot">=</span><span class="st">false                 # true | false</span></span>
+<span id="cb13-24"><a href="#cb13-24" aria-hidden="true" tabindex="-1"></a><span class="dt">LOG_LEVEL</span><span class="ot">=</span><span class="st">INFO             # DEBUG | INFO | WARNING | ERROR</span></span>
+<span id="cb13-25"><a href="#cb13-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-26"><a href="#cb13-26" aria-hidden="true" tabindex="-1"></a><span class="co"># ============================================</span></span>
+<span id="cb13-27"><a href="#cb13-27" aria-hidden="true" tabindex="-1"></a><span class="co"># SERVIDOR</span></span>
+<span id="cb13-28"><a href="#cb13-28" aria-hidden="true" tabindex="-1"></a><span class="co"># ============================================</span></span>
+<span id="cb13-29"><a href="#cb13-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-30"><a href="#cb13-30" aria-hidden="true" tabindex="-1"></a><span class="dt">HOST</span><span class="ot">=</span><span class="st">0.0.0.0               # 0.0.0.0 = accesible desde cualquier IP</span></span>
+<span id="cb13-31"><a href="#cb13-31" aria-hidden="true" tabindex="-1"></a><span class="dt">PORT</span><span class="ot">=</span><span class="st">8000                  # Puerto del servidor</span></span>
+<span id="cb13-32"><a href="#cb13-32" aria-hidden="true" tabindex="-1"></a><span class="dt">WORKERS</span><span class="ot">=</span><span class="st">4                  # Número de procesos workers</span></span>
+<span id="cb13-33"><a href="#cb13-33" aria-hidden="true" tabindex="-1"></a><span class="dt">RELOAD</span><span class="ot">=</span><span class="st">false               # Auto-reload en cambios (solo desarrollo)</span></span>
+<span id="cb13-34"><a href="#cb13-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-35"><a href="#cb13-35" aria-hidden="true" tabindex="-1"></a><span class="co"># ============================================</span></span>
+<span id="cb13-36"><a href="#cb13-36" aria-hidden="true" tabindex="-1"></a><span class="co"># CORS Y ACCESO</span></span>
+<span id="cb13-37"><a href="#cb13-37" aria-hidden="true" tabindex="-1"></a><span class="co"># ============================================</span></span>
+<span id="cb13-38"><a href="#cb13-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-39"><a href="#cb13-39" aria-hidden="true" tabindex="-1"></a><span class="dt">ALLOWED_ORIGINS</span><span class="ot">=</span><span class="st">http://localhost,http://127.0.0.1,http://192.168.1.100,https://tu-dominio.com</span></span>
+<span id="cb13-40"><a href="#cb13-40" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-41"><a href="#cb13-41" aria-hidden="true" tabindex="-1"></a><span class="co"># Para desarrollo: http://localhost,http://127.0.0.1</span></span>
+<span id="cb13-42"><a href="#cb13-42" aria-hidden="true" tabindex="-1"></a><span class="co"># Para producción: https://tu-dominio.com</span></span>
+<span id="cb13-43"><a href="#cb13-43" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-44"><a href="#cb13-44" aria-hidden="true" tabindex="-1"></a><span class="co"># ============================================</span></span>
+<span id="cb13-45"><a href="#cb13-45" aria-hidden="true" tabindex="-1"></a><span class="co"># BACKUPS</span></span>
+<span id="cb13-46"><a href="#cb13-46" aria-hidden="true" tabindex="-1"></a><span class="co"># ============================================</span></span>
+<span id="cb13-47"><a href="#cb13-47" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-48"><a href="#cb13-48" aria-hidden="true" tabindex="-1"></a><span class="dt">BACKUP_PATH</span><span class="ot">=</span><span class="st">D:\Backups\CafBarDLA</span></span>
+<span id="cb13-49"><a href="#cb13-49" aria-hidden="true" tabindex="-1"></a><span class="dt">BACKUP_RETENTION_DAYS</span><span class="ot">=</span><span class="st">30   # Mantener backups por 30 días</span></span>
+<span id="cb13-50"><a href="#cb13-50" aria-hidden="true" tabindex="-1"></a><span class="dt">BACKUP_SCHEDULE</span><span class="ot">=</span><span class="st">0 2 * * *  # Ejecutar a las 2:00 AM todos los días</span></span>
+<span id="cb13-51"><a href="#cb13-51" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-52"><a href="#cb13-52" aria-hidden="true" tabindex="-1"></a><span class="co"># Para S3 (DigitalOcean Spaces):</span></span>
+<span id="cb13-53"><a href="#cb13-53" aria-hidden="true" tabindex="-1"></a><span class="co"># BACKUP_S3_KEY=xxxxx</span></span>
+<span id="cb13-54"><a href="#cb13-54" aria-hidden="true" tabindex="-1"></a><span class="co"># BACKUP_S3_SECRET=xxxxx</span></span>
+<span id="cb13-55"><a href="#cb13-55" aria-hidden="true" tabindex="-1"></a><span class="co"># BACKUP_S3_ENDPOINT=nyc3.digitaloceanspaces.com</span></span>
+<span id="cb13-56"><a href="#cb13-56" aria-hidden="true" tabindex="-1"></a><span class="co"># BACKUP_S3_BUCKET=cafbardla-backups</span></span>
+<span id="cb13-57"><a href="#cb13-57" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-58"><a href="#cb13-58" aria-hidden="true" tabindex="-1"></a><span class="co"># ============================================</span></span>
+<span id="cb13-59"><a href="#cb13-59" aria-hidden="true" tabindex="-1"></a><span class="co"># INTEGRACIONES (Opcional)</span></span>
+<span id="cb13-60"><a href="#cb13-60" aria-hidden="true" tabindex="-1"></a><span class="co"># ============================================</span></span>
+<span id="cb13-61"><a href="#cb13-61" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-62"><a href="#cb13-62" aria-hidden="true" tabindex="-1"></a><span class="co"># Facturación electrónica (Colombia)</span></span>
+<span id="cb13-63"><a href="#cb13-63" aria-hidden="true" tabindex="-1"></a><span class="dt">FACTURA_ELECTRONICA_ENABLED</span><span class="ot">=</span><span class="kw">false</span></span>
+<span id="cb13-64"><a href="#cb13-64" aria-hidden="true" tabindex="-1"></a><span class="co"># FACTURA_API_KEY=xxxxx</span></span>
+<span id="cb13-65"><a href="#cb13-65" aria-hidden="true" tabindex="-1"></a><span class="co"># FACTURA_API_SECRET=xxxxx</span></span>
+<span id="cb13-66"><a href="#cb13-66" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-67"><a href="#cb13-67" aria-hidden="true" tabindex="-1"></a><span class="co"># Pagos (Stripe, PayPal, etc)</span></span>
+<span id="cb13-68"><a href="#cb13-68" aria-hidden="true" tabindex="-1"></a><span class="dt">PAYMENT_GATEWAY</span><span class="ot">=</span><span class="st">stripe</span></span>
+<span id="cb13-69"><a href="#cb13-69" aria-hidden="true" tabindex="-1"></a><span class="co"># STRIPE_API_KEY=xxxxx</span></span>
+<span id="cb13-70"><a href="#cb13-70" aria-hidden="true" tabindex="-1"></a><span class="co"># PAYPAL_CLIENT_ID=xxxxx</span></span>
+<span id="cb13-71"><a href="#cb13-71" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-72"><a href="#cb13-72" aria-hidden="true" tabindex="-1"></a><span class="co"># Email (Para recibos, reportes)</span></span>
+<span id="cb13-73"><a href="#cb13-73" aria-hidden="true" tabindex="-1"></a><span class="dt">MAIL_SERVER</span><span class="ot">=</span><span class="st">smtp.gmail.com</span></span>
+<span id="cb13-74"><a href="#cb13-74" aria-hidden="true" tabindex="-1"></a><span class="dt">MAIL_PORT</span><span class="ot">=</span><span class="dv">587</span></span>
+<span id="cb13-75"><a href="#cb13-75" aria-hidden="true" tabindex="-1"></a><span class="dt">MAIL_USERNAME</span><span class="ot">=</span><span class="st">tu-email@gmail.com</span></span>
+<span id="cb13-76"><a href="#cb13-76" aria-hidden="true" tabindex="-1"></a><span class="dt">MAIL_PASSWORD</span><span class="ot">=</span><span class="st">tu-app-password</span></span>
+<span id="cb13-77"><a href="#cb13-77" aria-hidden="true" tabindex="-1"></a><span class="dt">MAIL_FROM</span><span class="ot">=</span><span class="st">noreply@cafbardla.com</span></span>
+<span id="cb13-78"><a href="#cb13-78" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-79"><a href="#cb13-79" aria-hidden="true" tabindex="-1"></a><span class="co"># ============================================</span></span>
+<span id="cb13-80"><a href="#cb13-80" aria-hidden="true" tabindex="-1"></a><span class="co"># REPORTES</span></span>
+<span id="cb13-81"><a href="#cb13-81" aria-hidden="true" tabindex="-1"></a><span class="co"># ============================================</span></span>
+<span id="cb13-82"><a href="#cb13-82" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-83"><a href="#cb13-83" aria-hidden="true" tabindex="-1"></a><span class="dt">REPORTES_ENABLED</span><span class="ot">=</span><span class="kw">true</span></span>
+<span id="cb13-84"><a href="#cb13-84" aria-hidden="true" tabindex="-1"></a><span class="dt">REPORTES_FORMAT</span><span class="ot">=</span><span class="st">PDF        # PDF | Excel | CSV</span></span>
+<span id="cb13-85"><a href="#cb13-85" aria-hidden="true" tabindex="-1"></a><span class="dt">REPORTES_PATH</span><span class="ot">=</span><span class="st">D:\Reportes\CafBarDLA</span></span></code></pre></div>
+<h3 id="crear-carpetas-necesarias">Crear Carpetas Necesarias</h3>
+<div class="sourceCode" id="cb14"><pre
+class="sourceCode powershell"><code class="sourceCode powershell"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co"># En PowerShell como Administrador</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Carpeta de backups</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="fu">New-Item</span> <span class="op">-</span>ItemType Directory <span class="op">-</span>Path <span class="st">&quot;D:\Backups\CafBarDLA&quot;</span> <span class="op">-</span>Force</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Carpeta de reportes</span></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a><span class="fu">New-Item</span> <span class="op">-</span>ItemType Directory <span class="op">-</span>Path <span class="st">&quot;D:\Reportes\CafBarDLA&quot;</span> <span class="op">-</span>Force</span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Carpeta de logs</span></span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a><span class="fu">New-Item</span> <span class="op">-</span>ItemType Directory <span class="op">-</span>Path <span class="st">&quot;D:\Logs\CafBarDLA&quot;</span> <span class="op">-</span>Force</span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Dar permisos</span></span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a><span class="va">$ACL</span> <span class="op">=</span> <span class="fu">Get-Acl</span> <span class="st">&quot;D:\Backups\CafBarDLA&quot;</span></span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a><span class="va">$AccessRule</span> <span class="op">=</span> <span class="fu">New-Object</span> System<span class="op">.</span><span class="fu">Security</span><span class="op">.</span><span class="fu">AccessControl</span><span class="op">.</span><span class="fu">FileSystemAccessRule</span><span class="op">(</span><span class="st">&quot;SYSTEM&quot;</span><span class="op">,</span> <span class="st">&quot;FullControl&quot;</span><span class="op">,</span> <span class="st">&quot;ContainerInherit,ObjectInherit&quot;</span><span class="op">,</span> <span class="st">&quot;None&quot;</span><span class="op">,</span> <span class="st">&quot;Allow&quot;</span><span class="op">)</span></span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a><span class="va">$ACL</span><span class="op">.</span><span class="fu">SetAccessRule</span><span class="op">(</span><span class="va">$AccessRule</span><span class="op">)</span></span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a><span class="fu">Set-Acl</span> <span class="st">&quot;D:\Backups\CafBarDLA&quot;</span> <span class="va">$ACL</span></span></code></pre></div>
+<hr />
+<h2 id="parametrización">🎛️ Parametrización del Sistema</h2>
+<h3 id="acceder-a-configuración">Acceder a Configuración</h3>
+<pre><code>1. Abrir navegador: http://localhost:8000
+2. Login con admin/admin
+3. Menú → Configuración → Parametrización</code></pre>
+<h3 id="parámetros-principales">Parámetros Principales</h3>
+<h4 id="información-de-la-empresa">1. Información de la Empresa</h4>
+<pre><code>Nombre: [Tu Café/Bar/Restaurante]
+NIT/CÉDULA: [123456789]
+Dirección: [Calle 123 #45-67]
+Teléfono: [+57 1 2345678]
+Email: [contacto@tunegocion.com]
+Logo: [Subir imagen 300x300px]
+Eslogan: [Tu eslogan aquí]</code></pre>
+<h4 id="configuración-de-facturación">2. Configuración de
+Facturación</h4>
+<pre><code>Tipo de Factura: Electrónica / Manual
+Numeración: 1 (comenzará desde número 1)
+Resolución: [Número de resolución DIAN]
+Prefix: FAC- (ej: FAC-000001)
+Base Gravable: 19% (IVA por defecto)</code></pre>
+<h4 id="mesas-y-secciones">3. Mesas y Secciones</h4>
+<p>Crear estructura física del negocio:</p>
+<pre><code>Sección: Salón Principal
+├─ Mesa 1 (Capacidad: 4)
+├─ Mesa 2 (Capacidad: 4)
+├─ Mesa 3 (Capacidad: 6)
+└─ Mesa 4 (Capacidad: 2)
+
+Sección: Barra
+├─ Barra 1 (Capacidad: 5)
+└─ Barra 2 (Capacidad: 5)
+
+Sección: Terraza
+├─ Mesa 5 (Capacidad: 8)
+└─ Mesa 6 (Capacidad: 8)</code></pre>
+<h4 id="categorías-de-productos">4. Categorías de Productos</h4>
+<pre><code>☕ Bebidas Calientes
+  ├─ Café
+  ├─ Té
+  └─ Chocolate
+
+🥤 Bebidas Frías
+  ├─ Jugos
+  ├─ Refrescos
+  └─ Cerveza
+
+🍰 Repostería
+  ├─ Pasteles
+  ├─ Galletas
+  └─ Postres
+
+🍕 Comida Rápida
+  ├─ Sándwiches
+  ├─ Hamburguesas
+  └─ Pizzas</code></pre>
+<h4 id="productos-y-precios">5. Productos y Precios</h4>
+<p>Para cada producto configurar:</p>
+<pre><code>Nombre: Café Americano
+Categoría: Bebidas Calientes
+Descripción: Café especial con agua caliente
+Código: CAFE-001
+Precio Base: $5.000
+Impuesto: 19%
+Costo: $1.500
+Margen: 70%
+Stock Mínimo: 100
+Stock Máximo: 500
+Activo: ✓ Sí</code></pre>
+<h4 id="empleados-y-usuarios">6. Empleados y Usuarios</h4>
+<pre><code>Usuario: juan.perez
+Nombre: Juan Pérez García
+Email: juan@cafbardla.com
+Teléfono: 3001234567
+Rol: Vendedor
+Contraseña: [Autogenerada y enviada por email]
+Estado: Activo</code></pre>
+<p>Roles disponibles: - <strong>Admin</strong>: Acceso total al sistema
+- <strong>Gerente</strong>: Acceso a reportes y configuración -
+<strong>Vendedor</strong>: Toma de comandas - <strong>Mesero</strong>:
+Toma de pedidos (KDS) - <strong>Cocinero</strong>: Visualización de
+órdenes (KDS) - <strong>Caja</strong>: Cierre de caja y pagos</p>
+<h4 id="métodos-de-pago">7. Métodos de Pago</h4>
+<pre><code>Efectivo
+├─ Código: CASH
+├─ Comisión: 0%
+└─ Activo: ✓
+
+Tarjeta Débito
+├─ Código: DEBIT
+├─ Comisión: 1.5%
+└─ Activo: ✓
+
+Tarjeta Crédito
+├─ Código: CREDIT
+├─ Comisión: 2.5%
+├─ Banco: [Seleccionar]
+└─ Activo: ✓
+
+Transferencia
+├─ Código: TRANSFER
+├─ Comisión: 0%
+└─ Activo: ✓
+
+Billetera Digital
+├─ Código: WALLET
+├─ Comisión: 1%
+└─ Activo: ✓</code></pre>
+<h4 id="impuestos">8. Impuestos</h4>
+<pre><code>IVA General: 19%
+├─ Categorías aplicables: Todas excepto Bebidas Calientes
+
+IVA Bebidas Calientes: 8%
+├─ Categorías: Bebidas Calientes
+
+Propina Sugerida: 10%
+├─ Automática: No
+└─ Editable: ✓</code></pre>
+<h4 id="horarios-y-turnos">9. Horarios y Turnos</h4>
+<pre><code>Turno Mañana
+├─ Entrada: 06:00
+├─ Salida: 14:00
+└─ Empleados: 2
+
+Turno Tarde
+├─ Entrada: 14:00
+├─ Salida: 22:00
+└─ Empleados: 3
+
+Turno Noche
+├─ Entrada: 22:00
+├─ Salida: 06:00
+└─ Empleados: 1</code></pre>
+<h4 id="alertas-y-notificaciones">10. Alertas y Notificaciones</h4>
+<pre><code>Alerta de Stock Bajo: ✓ Habilitada
+├─ Umbral: 20% del stock mínimo
+└─ Email: gerente@cafbardla.com
+
+Alerta de Vencimiento: ✓ Habilitada
+├─ Días previos: 7
+└─ Email: admin@cafbardla.com
+
+Alerta de Cierre de Caja: ✓ Habilitada
+├─ Notificación: 30 minutos antes del cierre
+└─ Sonido: ✓
+
+Alerta de Pedidos: ✓ Habilitada
+├─ WebSocket: En tiempo real
+└─ Email: cocinero@cafbardla.com</code></pre>
+<hr />
+<h2 id="funcionamiento">🎮 Manual de Funcionamiento</h2>
+<h3 id="a.-toma-de-comanda-vendedormesero">A. Toma de Comanda
+(Vendedor/Mesero)</h3>
+<h4 id="paso-1-seleccionar-mesa">Paso 1: Seleccionar Mesa</h4>
+<pre><code>[Pantalla Principal]
+    ↓
+Clic: Mesas
+    ↓
+Seleccionar Mesa 1 (Estado: Disponible)</code></pre>
+<h4 id="paso-2-crear-nueva-comanda">Paso 2: Crear Nueva Comanda</h4>
+<pre><code>[Mesa 1 - Nueva Comanda]
+
+Hora: 14:35
+Mesero: Juan Pérez
+Número de clientes: 4</code></pre>
+<h4 id="paso-3-agregar-productos">Paso 3: Agregar Productos</h4>
+<pre><code>1. Búsqueda: &quot;Café&quot;
+   ↓
+   ✓ Café Americano
+   ✓ Café con Leche
+   ✓ Café Capuchino
+
+2. Seleccionar: Café Americano (x2)
+   ↓
+   Cantidad: 2
+   Observaciones: Sin azúcar
+   
+3. Agregar a Comanda
+   ↓
+   Total Comanda: $10.000
+
+4. Continuar agregando productos...
+   - Jugo Natural: 1
+   - Sándwich: 2
+   - Postre: 1
+   
+5. Total Final: $45.000</code></pre>
+<h4 id="paso-4-enviar-a-cocina">Paso 4: Enviar a Cocina</h4>
+<pre><code>[Botón ENVIAR A COCINA]
+    ↓
+✓ Comanda #2345 enviada a KDS
+    ↓
+[Estado: EN PREPARACIÓN]</code></pre>
+<h4 id="paso-5-seguimiento">Paso 5: Seguimiento</h4>
+<pre><code>Estado en tiempo real:
+
+⏳ Café: 3 min
+✓ Jugo: Listo
+⏳ Sándwich: 8 min
+⏳ Postre: 5 min
+
+[Botón COMANDA LISTA - cuando todo esté listo]</code></pre>
+<hr />
+<h3 id="b.-sistema-de-cocina-kitchen-display-system---kds">B. Sistema de
+Cocina (Kitchen Display System - KDS)</h3>
+<h4 id="pantalla-principal">Pantalla Principal</h4>
+<pre><code>┌─────────────────────────────────────────────────┐
+│        KITCHEN DISPLAY SYSTEM - 14:35            │
+├─────────────────────────────────────────────────┤
+│                                                 │
+│  Órdenes Pendientes: 5                          │
+│  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  │
+│                                                 │
+│  ORDEN #2345 (Mesa 1) [3 min en cocina]        │
+│  ├─ 2x Café Americano (Sin azúcar)            │
+│  ├─ 1x Jugo Natural ✓                          │
+│  └─ 1x Sándwich (En parrilla)                  │
+│     [Marcar como Listo]                        │
+│                                                 │
+│  ORDEN #2346 (Barra) [8 min en cocina]        │
+│  ├─ 3x Cerveza ✓                               │
+│  └─ 2x Botanas                                 │
+│     [Marcar como Listo]                        │
+│                                                 │
+│  ORDEN #2347 (Mesa 3) [1 min]                 │
+│  └─ 1x Hamburguesa (En parrilla)              │
+│     [Marcar como Listo]                        │
+│                                                 │
+└─────────────────────────────────────────────────┘</code></pre>
+<h4 id="flujo-de-operación">Flujo de Operación</h4>
+<pre><code>1. Recibir orden en pantalla (notificación sonora)
+2. Verificar ingredientes disponibles
+3. Preparar productos
+4. Marcar items como completados
+5. Cuando toda la orden esté lista: [Marcar Orden Completa]
+6. El mesero la recibe en la pantalla</code></pre>
+<hr />
+<h3 id="c.-cierre-de-caja">C. Cierre de Caja</h3>
+<h4 id="paso-1-acceso-a-cierre">Paso 1: Acceso a Cierre</h4>
+<pre><code>Menú → Caja → Cierre de Caja</code></pre>
+<h4 id="paso-2-revisar-movimientos">Paso 2: Revisar Movimientos</h4>
+<pre><code>CIERRE DE CAJA - Turno Tarde (14:00 - 22:00)
+Fecha: 20/07/2026
+Vendedor: Juan Pérez
+
+Total Ventas: $450.000
+├─ Efectivo: $300.000
+├─ Tarjeta Débito: $100.000
+├─ Tarjeta Crédito: $50.000
+└─ Transferencia: $0
+
+Total Egresos: $50.000
+├─ Aperitivos: $30.000
+├─ Útiles: $15.000
+└─ Otro: $5.000
+
+Total Neto: $400.000</code></pre>
+<h4 id="paso-3-contar-efectivo">Paso 3: Contar Efectivo</h4>
+<pre><code>Ingresar cantidad física de dinero:
+
+Billetes:
+├─ $100.000 x 2 = $200.000
+├─ $50.000 x 2 = $100.000
+└─ $20.000 x 0 = $0
+
+Monedas:
+├─ $5.000 x 0 = $0
+└─ $1.000 x 0 = $0
+
+Total Contado: $300.000
+Sistema: $300.000
+✓ Diferencia: $0 (Correcto!)</code></pre>
+<h4 id="paso-4-generar-reporte">Paso 4: Generar Reporte</h4>
+<pre><code>[Botón GENERAR REPORTE]
+    ↓
+✓ Reporte de Cierre generado
+    ↓
+Opciones:
+- [PDF] Descargar en PDF
+- [Email] Enviar por correo
+- [Imprimir] Imprimir recibo</code></pre>
+<hr />
+<h3 id="d.-gestión-de-inventario">D. Gestión de Inventario</h3>
+<h4 id="verificar-stock">Verificar Stock</h4>
+<pre><code>Menú → Inventario → Productos
+
+Buscar: &quot;Café&quot;
+    ↓
+┌─────────────────────────────┐
+│ Café Americano              │
+├─────────────────────────────┤
+│ Stock Actual: 245 unidades  │
+│ Stock Mínimo: 100 unidades  │
+│ Stock Máximo: 500 unidades  │
+│ Estado: ✓ OK                │
+│ Última compra: 15/07/2026   │
+│ Costo Unitario: $1.500      │
+│ Valor Total: $367.500       │
+└─────────────────────────────┘</code></pre>
+<h4 id="entrada-de-mercancía">Entrada de Mercancía</h4>
+<pre><code>Menú → Inventario → Entrada de Mercancía
+
+1. Seleccionar Proveedor: Café Importado S.A.
+2. Agregar Producto:
+   ├─ Café Americano: 100 unidades @ $1.500
+   ├─ Café Capuchino: 50 unidades @ $1.600
+   └─ Café con Leche: 75 unidades @ $1.400
+
+3. Total Compra: $292.500
+4. Guardar entrada</code></pre>
+<h4 id="ajuste-de-inventario">Ajuste de Inventario</h4>
+<pre><code>Menú → Inventario → Ajustes
+
+Motivo: Merma/Vencimiento/Rotura
+
+Producto: Jugo de Naranja
+Cantidad: -5
+Motivo: Botellas rotas durante transporte
+Costo: $25.000</code></pre>
+<hr />
+<h3 id="e.-reportes-y-análisis">E. Reportes y Análisis</h3>
+<h4 id="reporte-de-ventas-diarias">Reporte de Ventas Diarias</h4>
+<pre><code>Menú → Reportes → Ventas Diarias
+
+Fecha: 20/07/2026
+
+Total Ventas: $2.850.000
+Total Descuentos: $85.500
+Total Impuestos: $513.600
+TOTAL NETO: $3.278.100
+
+Productos Más Vendidos:
+1. Café Americano: 145 unidades ($725.000)
+2. Sándwich: 87 unidades ($1.044.000)
+3. Jugo Natural: 92 unidades ($644.000)
+
+Métodos de Pago:
+├─ Efectivo: 65% ($1.853.250)
+├─ Tarjeta Débito: 25% ($819.525)
+└─ Tarjeta Crédito: 10% ($327.810)
+
+Hora Pico: 12:00 - 14:00 (35% de ventas)</code></pre>
+<h4 id="reporte-de-inventario">Reporte de Inventario</h4>
+<pre><code>Menú → Reportes → Inventario
+
+Valor Total en Stock: $12.500.000
+
+Productos por Vencer (7 días):
+├─ Leche descremada: 3 botellas (20/07/2026)
+├─ Jamón de Pavo: 2 paquetes (22/07/2026)
+└─ Queso Fresco: 1 kg (25/07/2026)
+
+Productos con Stock Bajo:
+├─ Café Artesanal: 5 unidades (Mín: 50)
+├─ Chocolate: 8 unidades (Mín: 20)
+└─ Panela: 12 kilos (Mín: 50)
+
+Recomendación: Realizar compra urgente</code></pre>
+<hr />
+<h3 id="f.-facturación">F. Facturación</h3>
+<h4 id="generar-factura">Generar Factura</h4>
+<pre><code>Menú → Facturación → Crear Factura
+
+Cliente: Jorge López García
+Documento: 1024567890
+Email: jorge@correo.com
+
+Items:
+├─ Café Americano x2: $10.000
+├─ Sándwich x1: $12.000
+└─ Jugo x1: $7.000
+
+Subtotal: $29.000
+IVA (19%): $5.510
+TOTAL: $34.510
+
+Método de Pago: Tarjeta Crédito
+[GENERAR FACTURA ELECTRÓNICA]</code></pre>
+<h4 id="radicación-en-dian">Radicación en DIAN</h4>
+<pre><code>✓ Factura #FAC-000001 radicada exitosamente en DIAN
+Número Radicado: 21073100012200026
+Hora: 14:35:42
+
+Confirmación enviada a: jorge@correo.com</code></pre>
+<hr />
+<h3 id="g.-gestión-de-clientes">G. Gestión de Clientes</h3>
+<h4 id="registrar-cliente">Registrar Cliente</h4>
+<pre><code>Menú → Clientes → Nuevo Cliente
+
+Nombre: María García López
+Documento: 45876923
+Teléfono: 3105678901
+Email: maria.garcia@gmail.com
+Dirección: Calle 50 #10-20, Apto 502
+
+Preferences:
+☑ Recibir promociones por email
+☑ Aviso de nuevos productos
+☐ Envío a domicilio
+
+Clientes VIP:
+☑ Es cliente VIP (Descuento 5%)</code></pre>
+<h4 id="historial-de-compras">Historial de Compras</h4>
+<pre><code>Cliente: María García López
+
+Total gastado: $850.000
+Compras totales: 24
+Promedio por compra: $35.417
+
+Últimas compras:
+- 20/07/2026: $45.000 (Café + Sándwich)
+- 19/07/2026: $32.000 (Bebidas)
+- 18/07/2026: $38.000 (Comida rápida)</code></pre>
+<hr />
+<h3 id="h.-aplicación-móvil-iosandroid">H. Aplicación Móvil
+(iOS/Android)</h3>
+<h4 id="login-móvil">Login Móvil</h4>
+<pre><code>┌─────────────────────┐
+│   CAFBARDLA POS     │
+│                     │
+│ [Logo]              │
+│                     │
+│ Usuario: [________] │
+│ Contraseña: [______]│
+│                     │
+│  [INICIAR SESIÓN]   │
+│                     │
+│ ¿Olvidó contraseña? │
+└─────────────────────┘</code></pre>
+<h4 id="toma-de-pedidos-móvil">Toma de Pedidos Móvil</h4>
+<pre><code>┌─────────────────────────────────┐
+│ MESA 3 - Comanda #2350         │
+├─────────────────────────────────┤
+│                                 │
+│ 🔍 Buscar producto...          │
+│                                 │
+│ ☕ Bebidas Calientes (5)        │
+│    • Café Americano      $5.000│
+│    • Café con Leche      $5.500│
+│    • Capuchino           $6.000│
+│                                 │
+│ 🍰 Repostería (3)              │
+│    • Croissant           $3.000│
+│    • Pastel de chocolate $4.000│
+│                                 │
+│ 📱 [Mi Comanda] [ENVIAR]        │
+└─────────────────────────────────┘</code></pre>
+<hr />
+<h2 id="nube">☁️ Deployment en la Nube</h2>
+<p>Para instrucciones completas de deployment en: -
+<strong>Docker:</strong> Ver <code>scripts/docker-compose.yml</code> -
+<strong>Heroku:</strong> Ver <code>docs/CLOUD_DEPLOYMENT_GUIDE.md</code>
+- <strong>AWS:</strong> Ver <code>docs/CLOUD_DEPLOYMENT_GUIDE.md</code>
+- <strong>DigitalOcean:</strong> Ver
+<code>docs/CLOUD_DEPLOYMENT_GUIDE.md</code></p>
+<p>Resumen rápido con <strong>DigitalOcean</strong> (Recomendado):</p>
+<div class="sourceCode" id="cb48"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. Crear droplet (Ubuntu 22.04, $5/mes)</span></span>
+<span id="cb48-2"><a href="#cb48-2" aria-hidden="true" tabindex="-1"></a><span class="co"># 2. SSH a servidor</span></span>
+<span id="cb48-3"><a href="#cb48-3" aria-hidden="true" tabindex="-1"></a><span class="fu">ssh</span> root@<span class="op">&lt;</span>IP<span class="op">&gt;</span></span>
+<span id="cb48-4"><a href="#cb48-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb48-5"><a href="#cb48-5" aria-hidden="true" tabindex="-1"></a><span class="co"># 3. Instalar Docker</span></span>
+<span id="cb48-6"><a href="#cb48-6" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> <span class="at">-fsSL</span> https://get.docker.com <span class="kw">|</span> <span class="fu">sh</span></span>
+<span id="cb48-7"><a href="#cb48-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb48-8"><a href="#cb48-8" aria-hidden="true" tabindex="-1"></a><span class="co"># 4. Clonar proyecto</span></span>
+<span id="cb48-9"><a href="#cb48-9" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> clone https://github.com/tuusuario/CafBarDLA.git</span>
+<span id="cb48-10"><a href="#cb48-10" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> CafBarDLA</span>
+<span id="cb48-11"><a href="#cb48-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb48-12"><a href="#cb48-12" aria-hidden="true" tabindex="-1"></a><span class="co"># 5. Ejecutar con Docker Compose</span></span>
+<span id="cb48-13"><a href="#cb48-13" aria-hidden="true" tabindex="-1"></a><span class="ex">docker-compose</span> up <span class="at">-d</span></span>
+<span id="cb48-14"><a href="#cb48-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb48-15"><a href="#cb48-15" aria-hidden="true" tabindex="-1"></a><span class="co"># 6. Configurar SSL con Let&#39;s Encrypt</span></span>
+<span id="cb48-16"><a href="#cb48-16" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> certbot certonly <span class="at">--standalone</span> <span class="at">-d</span> cafbardla.tudominio.com</span>
+<span id="cb48-17"><a href="#cb48-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb48-18"><a href="#cb48-18" aria-hidden="true" tabindex="-1"></a><span class="co"># 7. Acceder</span></span>
+<span id="cb48-19"><a href="#cb48-19" aria-hidden="true" tabindex="-1"></a><span class="co"># https://cafbardla.tudominio.com</span></span></code></pre></div>
+<hr />
+<h2 id="mantenimiento">🔧 Mantenimiento y Soporte</h2>
+<h3 id="tareas-diarias">Tareas Diarias</h3>
+<ul class="task-list">
+<li><label><input type="checkbox" />Verificar que la aplicación está
+corriendo</label></li>
+<li><label><input type="checkbox" />Revisar alertas del
+sistema</label></li>
+<li><label><input type="checkbox" />Validar integridad de
+datos</label></li>
+</ul>
+<h3 id="tareas-semanales">Tareas Semanales</h3>
+<ul class="task-list">
+<li><label><input type="checkbox" />Revisar reportes de
+ventas</label></li>
+<li><label><input type="checkbox" />Verificar stock de productos
+críticos</label></li>
+<li><label><input type="checkbox" />Ejecutar limpieza de
+logs</label></li>
+</ul>
+<h3 id="tareas-mensuales">Tareas Mensuales</h3>
+<ul class="task-list">
+<li><label><input type="checkbox" />Hacer backup completo fuera del
+sitio</label></li>
+<li><label><input type="checkbox" />Revisar acceso de
+usuarios</label></li>
+<li><label><input type="checkbox" />Actualizar datos de configuración
+(precios, impuestos)</label></li>
+</ul>
+<h3 id="respaldo-backup">Respaldo (Backup)</h3>
+<div class="sourceCode" id="cb49"><pre
+class="sourceCode powershell"><code class="sourceCode powershell"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Backup manual</span></span>
+<span id="cb49-2"><a href="#cb49-2" aria-hidden="true" tabindex="-1"></a><span class="fu">cd</span> D<span class="op">:</span>\CafBarDLA</span>
+<span id="cb49-3"><a href="#cb49-3" aria-hidden="true" tabindex="-1"></a><span class="op">.</span>\scripts\backup_sqlite_production<span class="op">.</span><span class="fu">ps1</span></span>
+<span id="cb49-4"><a href="#cb49-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-5"><a href="#cb49-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Backup automático (configurado en .env.production)</span></span>
+<span id="cb49-6"><a href="#cb49-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Se ejecuta cada 2:00 AM</span></span>
+<span id="cb49-7"><a href="#cb49-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-8"><a href="#cb49-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Ubicación: D:\Backups\CafBarDLA\</span></span>
+<span id="cb49-9"><a href="#cb49-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Retención: 30 días</span></span></code></pre></div>
+<h3 id="troubleshooting">Troubleshooting</h3>
+<h4 id="problema-puerto-8000-ya-está-en-uso">Problema: “Puerto 8000 ya
+está en uso”</h4>
+<div class="sourceCode" id="cb50"><pre
+class="sourceCode powershell"><code class="sourceCode powershell"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Encontrar proceso usando puerto 8000</span></span>
+<span id="cb50-2"><a href="#cb50-2" aria-hidden="true" tabindex="-1"></a>netstat <span class="op">-</span>ano <span class="op">|</span> findstr <span class="op">:</span><span class="dv">8000</span></span>
+<span id="cb50-3"><a href="#cb50-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb50-4"><a href="#cb50-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Matar proceso (reemplazar PID)</span></span>
+<span id="cb50-5"><a href="#cb50-5" aria-hidden="true" tabindex="-1"></a>taskkill <span class="op">/</span>PID <span class="dv">12345</span> <span class="op">/</span>F</span>
+<span id="cb50-6"><a href="#cb50-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb50-7"><a href="#cb50-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Usar puerto diferente</span></span>
+<span id="cb50-8"><a href="#cb50-8" aria-hidden="true" tabindex="-1"></a>uvicorn app<span class="op">.</span><span class="fu">main</span><span class="op">:</span>app <span class="op">--</span>port <span class="dv">8001</span></span></code></pre></div>
+<h4 id="problema-no-se-puede-conectar-a-la-base-de-datos">Problema: “No
+se puede conectar a la base de datos”</h4>
+<div class="sourceCode" id="cb51"><pre
+class="sourceCode powershell"><code class="sourceCode powershell"><span id="cb51-1"><a href="#cb51-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Verificar si SQLite existe</span></span>
+<span id="cb51-2"><a href="#cb51-2" aria-hidden="true" tabindex="-1"></a><span class="fu">ls</span> <span class="op">*.</span><span class="fu">db</span></span>
+<span id="cb51-3"><a href="#cb51-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb51-4"><a href="#cb51-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Recrear base de datos</span></span>
+<span id="cb51-5"><a href="#cb51-5" aria-hidden="true" tabindex="-1"></a><span class="fu">del</span> cafbardla_prod<span class="op">.</span><span class="fu">db</span></span>
+<span id="cb51-6"><a href="#cb51-6" aria-hidden="true" tabindex="-1"></a>alembic upgrade head</span>
+<span id="cb51-7"><a href="#cb51-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb51-8"><a href="#cb51-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Si es PostgreSQL, verificar servicio</span></span>
+<span id="cb51-9"><a href="#cb51-9" aria-hidden="true" tabindex="-1"></a>psql <span class="op">-</span>U postgres <span class="op">-</span>c <span class="st">&quot;\l&quot;</span></span></code></pre></div>
+<h4 id="problema-error-de-memoria-en-pyinstaller">Problema: “Error de
+memoria en PyInstaller”</h4>
+<div class="sourceCode" id="cb52"><pre
+class="sourceCode powershell"><code class="sourceCode powershell"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a><span class="co"># No es necesario usar PyInstaller</span></span>
+<span id="cb52-2"><a href="#cb52-2" aria-hidden="true" tabindex="-1"></a><span class="co"># El servidor FastAPI funciona sin instalador</span></span>
+<span id="cb52-3"><a href="#cb52-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb52-4"><a href="#cb52-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Usar en lugar de ejecutable:</span></span>
+<span id="cb52-5"><a href="#cb52-5" aria-hidden="true" tabindex="-1"></a>python <span class="op">-</span>m uvicorn app<span class="op">.</span><span class="fu">main</span><span class="op">:</span>app <span class="op">--</span>host <span class="dv">0.0</span><span class="op">.</span><span class="dv">0.0</span> <span class="op">--</span>port <span class="dv">8000</span> <span class="op">--</span>workers <span class="dv">4</span></span></code></pre></div>
+<h3 id="contacto-de-soporte">Contacto de Soporte</h3>
+<ul>
+<li><strong>Email:</strong> support@dlatecnologia.com</li>
+<li><strong>Teléfono:</strong> +57 1 2345678</li>
+<li><strong>WhatsApp:</strong> +57 310 5678901</li>
+<li><strong>Portal Web:</strong> https://support.dlatecnologia.com</li>
+</ul>
+<hr />
+<h2 id="faq---preguntas-frecuentes">📞 FAQ - Preguntas Frecuentes</h2>
+<p><strong>P: ¿Puedo usar CafBarDLA sin conexión a Internet?</strong> R:
+Sí, funciona completamente offline. Sin embargo, perderás acceso a: -
+Facturación electrónica DIAN - Actualizaciones automáticas -
+Sincronización en la nube</p>
+<p><strong>P: ¿Cuántos usuarios simultáneos puede soportar?</strong> R:
+Con la configuración estándar (4 workers), hasta 100 usuarios
+concurrentes sin problemas. Para mayor capacidad, escalar a más workers
+o usar balanceador de carga.</p>
+<p><strong>P: ¿Dónde se guardan los datos?</strong> R: En la base de
+datos (SQLite o PostgreSQL). Para máxima seguridad, hacer backups
+regulares.</p>
+<p><strong>P: ¿Puedo cambiar de SQLite a PostgreSQL después?</strong> R:
+Sí, con script de migración. Contactar a soporte técnico.</p>
+<p><strong>P: ¿Cómo recupero un backup?</strong> R: Reemplazar archivo
+<code>cafbardla_prod.db</code> con el archivo de backup de la fecha
+deseada.</p>
+<hr />
+<h2 id="checklist-de-implementación">📋 Checklist de Implementación</h2>
+<ul class="task-list">
+<li><label><input type="checkbox" />Servidor preparado y conectado a la
+red</label></li>
+<li><label><input type="checkbox" />Python 3.11+ instalado</label></li>
+<li><label><input type="checkbox" />Aplicación CafBarDLA
+ejecutándose</label></li>
+<li><label><input type="checkbox" />Base de datos
+inicializada</label></li>
+<li><label><input type="checkbox" />Backups configurados</label></li>
+<li><label><input type="checkbox" />Usuarios creados y
+asignados</label></li>
+<li><label><input type="checkbox" />Mesas y categorías
+configuradas</label></li>
+<li><label><input type="checkbox" />Productos ingresados</label></li>
+<li><label><input type="checkbox" />Métodos de pago
+configurados</label></li>
+<li><label><input type="checkbox" />Terminales POS
+conectadas</label></li>
+<li><label><input type="checkbox" />Pruebas de funcionamiento
+completadas</label></li>
+<li><label><input type="checkbox" />Capacitación de usuarios
+realizada</label></li>
+<li><label><input type="checkbox" />Documentación entregada</label></li>
+</ul>
+<hr />
+<p><strong>Documento Generado:</strong> 2026-07-20<br />
+<strong>Versión:</strong> 1.0<br />
+<strong>Empresa:</strong> DLA Tecnología<br />
+<strong>Soporte:</strong> support@dlatecnologia.com</p>
+<hr />
+<p><strong>GRACIAS POR ELEGIR CAFBARDLA</strong> ☕</p>
+</body>
+</html>

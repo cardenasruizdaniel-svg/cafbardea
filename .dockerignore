@@ -1,0 +1,35 @@
+# VCS
+.git
+.gitignore
+
+# Python cache and environments
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.venv/
+.buildenv/
+
+# Local data and logs
+*.db
+*.sqlite3
+logs/
+backups/
+
+# Build artifacts
+build/
+dist/
+*.spec
+
+# Editor and OS files
+.vscode/
+.idea/
+*.swp
+Thumbs.db
+.DS_Store
+
+# Env files
+.env
+.env.*

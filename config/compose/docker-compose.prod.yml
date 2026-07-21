@@ -1,0 +1,204 @@
+version: '3.8'
+
+# ============================================================================
+# Docker Compose para producción de CafBarDLA
+# Servicios: FastAPI app + PostgreSQL + Nginx
+#
+# Uso:
+#   docker-compose -f docker-compose.prod.yml up -d
+#
+# Ver logs:
+#   docker-compose -f docker-compose.prod.yml logs -f app
+# ============================================================================
+
+services:
+  # ========================================
+  # PostgreSQL Database
+  # ========================================
+  db:
+    image: postgres:16-alpine
+    container_name: cafbardla_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: cafbardla_prod
+      POSTGRES_USER: cafbar_user
+      POSTGRES_PASSWORD: cafbar_secure_password_123
+      POSTGRES_INITDB_ARGS: "-E UTF8 -c max_connections=200"
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      - ./backups:/backups
+    networks:
+      - cafbardla_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cafbar_user -d cafbardla_prod"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "10"
+
+  # ========================================
+  # FastAPI Application
+  # ========================================
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cafbardla_app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ENVIRONMENT: production
+      DEBUG: "false"
+      LOG_LEVEL: INFO
+      DATABASE_URL: postgresql://cafbar_user:cafbar_secure_password_123@db:5432/cafbardla_prod
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-tu-clave-secreta-fase7-cafbardla-2024}
+      SESSION_SECRET_KEY: ${SESSION_SECRET_KEY:-tu-clave-sesion-cafbardla-2024}
+      ALLOWED_ORIGINS: "http://localhost,https://tudominio.com"
+      TIMEZONE: America/Bogota
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./app:/app/app:ro
+      - ./logs:/app/logs
+      - ./.env.production:/app/.env.production:ro
+    networks:
+      - cafbardla_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "10"
+    command: |
+      sh -c "
+        echo 'Esperando base de datos...'
+        sleep 5
+        echo 'Ejecutando migraciones Alembic...'
+        alembic upgrade head
+        echo 'Iniciando aplicación...'
+        uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
+      "
+
+  # ========================================
+  # Nginx Reverse Proxy
+  # ========================================
+  nginx:
+    image: nginx:alpine
+    container_name: cafbardla_nginx
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./config/nginx_cafbardla_production.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./app/static:/var/www/cafbardla/app/static:ro
+      - nginx_logs:/var/log/nginx
+      - ./certs:/etc/nginx/certs:ro  # Para SSL/TLS local
+    networks:
+      - cafbardla_net
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "10"
+
+  # ========================================
+  # Redis (Opcional para caching/sessions)
+  # ========================================
+  redis:
+    image: redis:alpine
+    container_name: cafbardla_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - cafbardla_net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command: redis-server --appendonly yes
+    profiles:
+      - optional
+
+  # ========================================
+  # Backup Service (Cron job)
+  # ========================================
+  backup:
+    image: postgres:16-alpine
+    container_name: cafbardla_backup
+    restart: unless-stopped
+    depends_on:
+      - db
+    environment:
+      PGPASSWORD: cafbar_secure_password_123
+    volumes:
+      - ./backups:/backups
+      - ./scripts:/scripts:ro
+    networks:
+      - cafbardla_net
+    entrypoint: |
+      sh -c "
+        while true; do
+          BACKUP_FILE=/backups/cafbardla_\$(date +\%Y\%m\%d_\%H\%m\%S).sql
+          echo \"[Backup] Iniciando backup a \$BACKUP_FILE...\"
+          pg_dump -h db -U cafbar_user -d cafbardla_prod --format=plain | gzip > \$BACKUP_FILE.gz
+          echo \"[Backup] Completado\"
+          find /backups -name 'cafbardla_*.sql.gz' -mtime +30 -delete
+          sleep 86400
+        done
+      "
+    profiles:
+      - backup
+
+# ============================================================================
+# Volúmenes
+# ============================================================================
+volumes:
+  db_data:
+    driver: local
+  redis_data:
+    driver: local
+  nginx_logs:
+    driver: local
+
+# ============================================================================
+# Redes
+# ============================================================================
+networks:
+  cafbardla_net:
+    driver: bridge
+
+# ============================================================================
+# Nota sobre perfiles:
+# - Ejecutar solo servicios principales (sin Redis, Backup):
+#   docker-compose -f docker-compose.prod.yml up -d
+#
+# - Incluir Redis:
+#   docker-compose -f docker-compose.prod.yml --profile optional up -d
+#
+# - Incluir servicio Backup:
+#   docker-compose -f docker-compose.prod.yml --profile backup up -d
+# ============================================================================

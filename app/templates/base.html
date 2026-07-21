@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0a0e27">
+    <title>{{ empresa.nombre }} | CAFBARDLA</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='75' font-size='75'>☕</text></svg>">
+    
+    <!-- Premium Design System CSS -->
+    <link rel="stylesheet" href="/static/css/design-system.css">
+    <link rel="stylesheet" href="/static/css/layout.css">
+    <link rel="stylesheet" href="/static/css/dashboard.css">
+    <link rel="stylesheet" href="/static/css/app-additional.css">
+    <link rel="stylesheet" href="/static/app.css">
+    
+    <style>
+        :root {
+            --primary: {{ empresa.color_primario | default('#d4af37') }};
+            --soft: {{ empresa.color_secundario | default('#fef3c7') }};
+        }
+    </style>
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="platform-web">
+    <div class="app-container">
+        <!-- SIDEBAR -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">☕</div>
+                <div class="sidebar-brand">
+                    <div class="brand-name">CAFBARDLA</div>
+                    <div class="brand-subtitle">{{ empresa.nombre[:15] }}</div>
+                </div>
+                <button class="sidebar-collapse-btn" id="sidebarCollapseBtn" type="button" aria-label="Ocultar menú">⟨</button>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title">Operación</div>
+                    <a href="/" class="nav-item">📊 Resumen</a>
+                    <a href="/mesas" class="nav-item">🪑 Mesas</a>
+                    {% if usuario.rol != 'cocina' %}
+                    <a href="/caja" class="nav-item">💰 Caja</a>
+                    <a href="/domicilios" class="nav-item">🚗 Domicilios</a>
+                    {% endif %}
+                    {% if usuario.rol in ('administrador','cocina') %}
+                    <a href="/cocina" class="nav-item">👨‍🍳 Cocina</a>
+                    {% endif %}
+                </div>
+                
+                {% if usuario.rol != 'cocina' %}
+                <div class="nav-section">
+                    <div class="nav-section-title">Catálogo</div>
+                    <a href="/productos" class="nav-item">📦 Productos</a>
+                    <a href="/inventario" class="nav-item">📊 Inventario</a>
+                    <a href="/produccion" class="nav-item">⚙️ Producción</a>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">Compras</div>
+                    <a href="/compras" class="nav-item">🛒 Compras</a>
+                    <a href="/gastos" class="nav-item">💸 Gastos</a>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">Clientes</div>
+                    <a href="/clientes" class="nav-item">👥 Clientes</a>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">Personal</div>
+                    <a href="/empleados" class="nav-item">👨‍💼 Empleados</a>
+                    <a href="/nomina" class="nav-item">📋 Nómina</a>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">Reportes</div>
+                    <a href="/informes" class="nav-item">📈 Informes</a>
+                </div>
+                {% endif %}
+                
+                {% if usuario.rol == 'administrador' %}
+                <div class="nav-section">
+                    <div class="nav-section-title">Administración</div>
+                    <a href="/usuarios" class="nav-item">🔐 Usuarios</a>
+                    <a href="/configuracion" class="nav-item">⚙️ Configuración</a>
+                </div>
+                {% endif %}
+
+                <div class="nav-section">
+                    <div class="nav-section-title">Plataformas</div>
+                    <a href="/mobile" class="nav-item">📱 Vista móvil</a>
+                </div>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <div class="sidebar-user">
+                    <div class="user-avatar">{{ usuario.nombre[0] | upper }}</div>
+                    <div class="user-info">
+                        <div class="user-name">{{ usuario.nombre }}</div>
+                        <div class="user-role">{{ usuario.rol | title }}</div>
+                    </div>
+                </div>
+                <a href="/logout" class="btn btn-outline" style="width: 100%; text-align: center;">Salir</a>
+            </div>
+        </aside>
+        
+        <!-- MAIN CONTENT -->
+        <main class="main">
+            <div class="main-toolbar">
+                <button class="sidebar-mobile-btn" id="sidebarMobileBtn" type="button" aria-label="Abrir menú">☰</button>
+                <span class="main-toolbar-label">{{ empresa.nombre }}</span>
+            </div>
+            <div class="main-content">
+                {% block content %}{% endblock %}
+            </div>
+        </main>
+    </div>
+    <div class="sidebar-backdrop" id="sidebarBackdrop" aria-hidden="true"></div>
+    
+    <!-- JavaScript -->
+    <script src="/static/js/app.js"></script>
+    
+    <!-- FASE 6: WebSocket Client para Sincronización Real-time -->
+    <script src="/static/js/websocket-client.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Activar nav item actual
+            document.querySelectorAll('.nav-item').forEach(link => {
+                if (link.href === window.location.href) {
+                    link.classList.add('active');
+                }
+            });
+            
+            // Inicializar WebSocket Cliente
+            const usuarioId = {{ usuario.id or 1 }};
+            const sucursalId = {{ empresa.id or 1 }};
+            const dispositivo = 'web';
+            
+            const wsClient = initWebSocketClient(usuarioId, sucursalId, dispositivo);
+            
+            // Handlers generales
+            wsClient.on('__connected__', () => {
+                UIUpdates.mostrarNotificacion('Conectado', 'Sincronización en vivo activada', 'success');
+                UIUpdates.mostrarIndicadorVivo();
+                console.log('✅ WebSocket conectado y sincronizado');
+            });
+            
+            wsClient.on('__disconnected__', (datos) => {
+                UIUpdates.mostrarNotificacion('Desconectado', 'Intentando reconectar...', 'warning');
+                UIUpdates.ocultarIndicadorVivo();
+                console.log('❌ WebSocket desconectado');
+            });
+            
+            // Handler para cualquier evento (para debugging)
+            wsClient.on('__any__', (mensaje) => {
+                console.debug('📨 Evento WebSocket:', mensaje.evento, mensaje.datos);
+            });
+        });
+    </script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

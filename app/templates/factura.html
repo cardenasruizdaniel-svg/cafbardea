@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ venta.numero_factura }} | {{ empresa.nombre }}</title>
+    <style>
+        :root {
+            --ink: #1f2937;
+            --muted: #6b7280;
+            --line: #e5e7eb;
+            --paper: #ffffff;
+            --bg: #f3f4f6;
+            --accent: {{ empresa.color_primario | default('#b45309') }};
+            --soft: {{ empresa.color_secundario | default('#fef3c7') }};
+        }
+
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: "Segoe UI", Arial, sans-serif;
+            color: var(--ink);
+            background: radial-gradient(circle at 95% 0%, var(--soft), transparent 30rem), var(--bg);
+        }
+
+        .toolbar {
+            max-width: 980px;
+            margin: 18px auto 0;
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 0 16px;
+        }
+
+        .toolbar a,
+        .toolbar button {
+            border: 0;
+            border-radius: 10px;
+            padding: 10px 14px;
+            text-decoration: none;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 13px;
+        }
+
+        .toolbar a {
+            background: #111827;
+            color: #fff;
+        }
+
+        .toolbar button {
+            background: var(--accent);
+            color: #fff;
+        }
+
+        .invoice {
+            max-width: 980px;
+            margin: 14px auto 20px;
+            background: var(--paper);
+            border-radius: 16px;
+            box-shadow: 0 16px 42px rgba(17, 24, 39, 0.12);
+            overflow: hidden;
+        }
+
+        .invoice-header {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 18px;
+            padding: 28px;
+            border-bottom: 1px solid var(--line);
+            background: linear-gradient(145deg, #fff 0%, #fafaf9 100%);
+        }
+
+        .invoice-header h1 {
+            margin: 0 0 8px;
+            font-size: 30px;
+        }
+
+        .muted {
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.45;
+            margin: 0;
+        }
+
+        .number-box {
+            text-align: right;
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 12px;
+            background: #fff;
+        }
+
+        .number-box strong {
+            color: var(--accent);
+            font-size: 20px;
+            display: block;
+        }
+
+        .invoice-body {
+            padding: 26px;
+        }
+
+        .meta-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .meta-card {
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 10px 12px;
+            background: #fff;
+        }
+
+        .meta-card small {
+            display: block;
+            color: var(--muted);
+            margin-bottom: 4px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            font-size: 11px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+        }
+
+        th, td {
+            border-bottom: 1px solid var(--line);
+            padding: 12px 8px;
+            text-align: left;
+            font-size: 14px;
+        }
+
+        th {
+            font-size: 11px;
+            text-transform: uppercase;
+            color: var(--muted);
+            letter-spacing: 0.8px;
+        }
+
+        td:last-child,
+        th:last-child {
+            text-align: right;
+        }
+
+        .totals {
+            margin-top: 18px;
+            margin-left: auto;
+            width: 320px;
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 10px 14px;
+            background: #fff;
+        }
+
+        .totals p {
+            display: flex;
+            justify-content: space-between;
+            margin: 8px 0;
+            font-size: 14px;
+        }
+
+        .totals .grand {
+            border-top: 1px solid var(--line);
+            padding-top: 10px;
+            font-weight: 800;
+            font-size: 19px;
+            color: var(--accent);
+        }
+
+        .footer {
+            border-top: 1px solid var(--line);
+            margin-top: 18px;
+            padding-top: 10px;
+            color: var(--muted);
+            font-size: 12px;
+            text-align: center;
+        }
+
+        .mobile-note {
+            display: none;
+            margin: 0 16px 12px;
+            background: #111827;
+            color: #fff;
+            border-radius: 10px;
+            padding: 8px 10px;
+            font-size: 12px;
+            text-align: center;
+        }
+
+        @media (max-width: 780px) {
+            .invoice-header {
+                grid-template-columns: 1fr;
+                padding: 16px;
+            }
+
+            .number-box {
+                text-align: left;
+            }
+
+            .invoice-body {
+                padding: 16px;
+            }
+
+            .meta-grid {
+                grid-template-columns: 1fr;
+            }
+
+            table,
+            thead,
+            tbody,
+            th,
+            td,
+            tr {
+                display: block;
+            }
+
+            thead {
+                display: none;
+            }
+
+            tr {
+                margin-bottom: 10px;
+                border: 1px solid var(--line);
+                border-radius: 10px;
+                padding: 8px;
+            }
+
+            td {
+                border: 0;
+                padding: 5px 0;
+                text-align: left;
+            }
+
+            td:last-child {
+                text-align: left;
+            }
+
+            .totals {
+                width: 100%;
+                margin-left: 0;
+            }
+
+            .mobile-note {
+                display: block;
+            }
+        }
+
+        @media print {
+            .toolbar,
+            .mobile-note { display: none; }
+            body { background: #fff; }
+            .invoice { box-shadow: none; margin: 0; border-radius: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="toolbar">
+        <a href="/mesas">← Volver a mesas</a>
+        <button onclick="window.print()">Imprimir comprobante</button>
+    </div>
+
+    {% if es_movil %}
+    <div class="mobile-note">Vista móvil optimizada para cobro rápido y comprobante compacto.</div>
+    {% endif %}
+
+    <main class="invoice">
+        <header class="invoice-header">
+            <div>
+                <h1>{{ empresa.nombre }}</h1>
+                <p class="muted">
+                    NIT: {{ empresa.nit or 'No configurado' }}<br>
+                    {{ empresa.direccion or 'Dirección no configurada' }}<br>
+                    {{ empresa.telefono or 'Teléfono no configurado' }}
+                </p>
+            </div>
+            <div class="number-box">
+                <small class="muted">Factura</small>
+                <strong>{{ venta.numero_factura }}</strong>
+                <small class="muted">{{ venta.fecha.strftime('%d/%m/%Y %H:%M') }}</small>
+            </div>
+        </header>
+
+        <section class="invoice-body">
+            <div class="meta-grid">
+                <div class="meta-card">
+                    <small>Cliente</small>
+                    <span>{{ cliente.nombre if cliente else 'Consumidor final' }}</span>
+                </div>
+                <div class="meta-card">
+                    <small>Medio de pago</small>
+                    <span>{{ (venta.medio_pago or 'Sin definir') | title }}</span>
+                </div>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Producto</th>
+                        <th>Cantidad</th>
+                        <th>Precio</th>
+                        <th>Subtotal</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for d in venta.detalles %}
+                    <tr>
+                        <td>{{ productos[d.producto_id].nombre if d.producto_id in productos else 'Producto' }}</td>
+                        <td>{{ d.cantidad }}</td>
+                        <td>${{ '{:,.0f}'.format(d.precio) }}</td>
+                        <td>${{ '{:,.0f}'.format(d.precio * d.cantidad) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <div class="totals">
+                <p><span>Subtotal</span><span>${{ '{:,.0f}'.format(venta.subtotal or 0) }}</span></p>
+                <p><span>Descuento</span><span>${{ '{:,.0f}'.format(venta.descuento or 0) }}</span></p>
+                <p><span>Impuesto</span><span>${{ '{:,.0f}'.format(venta.impuesto or 0) }}</span></p>
+                <p><span>Propina</span><span>${{ '{:,.0f}'.format(venta.propina or 0) }}</span></p>
+                <p class="grand"><span>Total</span><span>${{ '{:,.0f}'.format(venta.total or 0) }}</span></p>
+            </div>
+
+            <p class="footer">Gracias por su compra. Este documento fue generado por CAFBARDLA POS.</p>
+        </section>
+    </main>
+</body>
+</html>

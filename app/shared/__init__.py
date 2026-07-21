@@ -1,0 +1,3 @@
+"""
+Utilidades compartidas entre módulos
+"""
