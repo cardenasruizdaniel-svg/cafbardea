@@ -19,6 +19,12 @@ class Settings(BaseSettings):
 
 settings = Settings()
 
+if settings.secret_key == "MUST_CHANGE_IN_PRODUCTION":
+    logger.warning("SECRET_KEY sigue con el valor por defecto; cámbiala antes de usar producción.")
+
+if settings.database_url.startswith("sqlite"):
+    logger.warning("DATABASE_URL está usando SQLite; para Render debe apuntar a PostgreSQL.")
+
 logging.basicConfig(
     level=getattr(logging, settings.log_level),
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'

@@ -46,3 +46,12 @@ Consulte la documentación en [`docs/`](docs/).
 	```powershell
 	powershell -ExecutionPolicy Bypass -File scripts/validate_docker_production.ps1
 	```
+
+## Deployment en Render
+
+1. Publica el repositorio en GitHub o GitLab.
+2. En Render, crea un nuevo servicio desde Blueprint y selecciona `render.yaml`.
+3. Crea o adjunta una base PostgreSQL y configura `DATABASE_URL` en el servicio.
+4. Asegura `SECRET_KEY` y `ENVIRONMENT=production`.
+5. Revisa la guía detallada en [`docs/DEPLOYMENT_RENDER.md`](docs/DEPLOYMENT_RENDER.md).
+6. Si el servicio ya existe, usa `Manual Deploy` para actualizar el despliegue con el último commit.
