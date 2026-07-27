@@ -22,9 +22,28 @@
 }
 
 /* ---- Lienzo general: fondo claro, mas ancho aprovechado ---- */
-body.platform-web { background: var(--e-bg); color: var(--e-text); }
-
-.main { background: var(--e-bg) !important; }
+/* Eliminar TODO rastro del tema oscuro anterior (franja azul entre sidebar y
+   contenido, header oscuro, body oscuro). Se ataca en la raiz. */
+html, body, body.platform-web {
+  background: var(--e-bg) !important;
+  background-image: none !important;
+  color: var(--e-text);
+}
+.app-container {
+  background: var(--e-bg) !important;
+  background-image: none !important;
+}
+.main {
+  background: var(--e-bg) !important;
+  background-image: none !important;
+}
+/* Header superior (si aparece): claro, no el azul translucido premium */
+.header {
+  background: var(--e-surface) !important;
+  backdrop-filter: none !important;
+  border-bottom: 1px solid var(--e-border) !important;
+}
+.header * { color: var(--e-text) !important; }
 
 .main-content {
   max-width: 1800px !important;         /* aprovechar pantallas anchas */
@@ -173,6 +192,98 @@ input:focus, select:focus, textarea:focus {
 /* ---- Accesibilidad: foco visible de teclado ---- */
 a:focus-visible, button:focus-visible, input:focus-visible,
 select:focus-visible { outline: 2px solid var(--e-brand) !important; outline-offset: 2px; }
+
+/* ============================================================================
+   REFINAMIENTO PROFESIONAL — detalles de alta categoria
+   ============================================================================ */
+
+/* Sidebar mas elegante: separacion, jerarquia y estado activo con barra */
+.sidebar {
+  box-shadow: 1px 0 0 var(--e-border) !important;
+}
+.sidebar-nav { padding: 8px 12px !important; }
+.nav-section { margin-bottom: 4px !important; }
+.nav-section-title {
+  font-size: 11px !important; letter-spacing: .1em !important;
+  text-transform: uppercase !important; font-weight: 700 !important;
+  color: #97a1af !important; padding: 14px 12px 6px !important;
+}
+.nav-item {
+  padding: 9px 12px !important; margin: 1px 0 !important;
+  font-size: 14px !important; font-weight: 500 !important;
+  display: flex !important; align-items: center !important; gap: 10px !important;
+  transition: background .12s ease, color .12s ease !important;
+}
+.nav-item.active, .nav-item[aria-current="page"] {
+  background: var(--e-brand) !important; color: #fff !important;
+  font-weight: 600 !important;
+  box-shadow: 0 2px 8px rgba(15,107,74,.25) !important;
+}
+.sidebar-header { padding: 20px 18px !important; }
+.brand-name {
+  font-weight: 800 !important; letter-spacing: .02em !important; font-size: 16px !important;
+}
+.sidebar-logo {
+  border-radius: 12px !important; width: 40px !important; height: 40px !important;
+  display: grid !important; place-items: center !important; font-size: 20px !important;
+}
+
+/* Encabezados de pagina (hero tipo "Mesas y zonas"): mas limpio y sobrio */
+.main header, .main .page-header, section.hero, .mesas-hero {
+  background: var(--e-surface) !important;
+  border: 1px solid var(--e-border) !important;
+  border-radius: 16px !important;
+  box-shadow: var(--e-shadow) !important;
+  padding: 24px 28px !important;
+  margin-bottom: 24px !important;
+}
+.main header h1, .main .page-header h1 {
+  font-weight: 800 !important; letter-spacing: -.01em !important;
+  font-size: 1.9rem !important;
+}
+/* Quitar el fondo crema/dorado de heros previos para un look mas sobrio */
+[class*="hero"], [class*="hero"] * { background-image: none !important; }
+
+/* Titulos de panel con mejor peso */
+.panel h2, .card h2 {
+  font-size: 1.05rem !important; font-weight: 700 !important;
+  letter-spacing: -.01em !important; margin-bottom: 14px !important;
+}
+
+/* Botones: mas presencia, transicion suave */
+button:not(.btn-sm), .button:not(.secondary), input[type="submit"] {
+  padding: 11px 20px !important; transition: background .14s ease, transform .06s ease !important;
+  box-shadow: 0 1px 2px rgba(15,107,74,.15) !important;
+}
+button:not(.btn-sm):active, .button:not(.secondary):active { transform: translateY(1px) !important; }
+
+/* Chips de leyenda (Libre/Ocupada/...) mas finos */
+.legend span, [class*="legend"] span {
+  border: 1px solid var(--e-border) !important;
+  background: var(--e-surface) !important; color: var(--e-text-soft) !important;
+  border-radius: 999px !important; padding: 5px 12px !important; font-weight: 600 !important;
+}
+
+/* Tarjetas: hover sutil que da vida sin distraer */
+.panel, .card, .stats article {
+  transition: box-shadow .16s ease, transform .16s ease !important;
+}
+.panel:hover, .stats article:hover {
+  box-shadow: var(--e-shadow-lg) !important;
+}
+
+/* Scrollbar discreta y clara */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: #cdd5df; border-radius: 6px; border: 2px solid var(--e-bg); }
+::-webkit-scrollbar-thumb:hover { background: #b4bfcc; }
+::-webkit-scrollbar-track { background: transparent; }
+
+/* Footer del sidebar (usuario) */
+.sidebar-footer, .sidebar-user {
+  border-top: 1px solid var(--e-border) !important;
+}
+.user-name { color: var(--e-text) !important; font-weight: 600 !important; }
+.user-role { color: var(--e-text-soft) !important; }
 
 /* ---- Respeto a movimiento reducido ---- */
 @media (prefers-reduced-motion: reduce) {

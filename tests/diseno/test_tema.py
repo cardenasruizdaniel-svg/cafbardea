@@ -17,3 +17,17 @@ class TestTemaEscritorio:
         # El tema define un contenedor mas ancho para escritorio.
         r = client_autenticado.get("/static/css/tema-escritorio.css")
         assert "1800px" in r.text
+
+
+class TestSinFranjaOscura:
+    """El tema claro debe eliminar el fondo oscuro del app-container (franja azul)."""
+
+    def test_tema_neutraliza_app_container(self, client_autenticado):
+        r = client_autenticado.get("/static/css/tema-escritorio.css")
+        # el tema debe forzar el fondo claro en app-container y body
+        assert ".app-container" in r.text
+        assert "background-image: none" in r.text
+
+    def test_tema_cubre_header_oscuro(self, client_autenticado):
+        r = client_autenticado.get("/static/css/tema-escritorio.css")
+        assert ".header" in r.text

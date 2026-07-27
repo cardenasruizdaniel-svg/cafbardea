@@ -1680,3 +1680,49 @@ conservador.
 - Separar modulo de meseros (que no mande a la ventana de mesas de la web).
 - Modulos independientes con identidad propia (mesero, cliente, gerencial, web).
 - Motor de reconocimiento facial (fuera de este entorno).
+
+
+---
+
+# Paso 28: Correccion de franja oscura + pulido visual profesional
+
+El usuario reporto (con captura) que quedaba una franja azul oscura muy fea
+entre el menu y el contenido, y pidio una visual mas profesional, al nivel de un
+programa internacional de restaurantes de alta categoria.
+
+## Diagnostico
+
+La franja era un resto del tema oscuro anterior que la capa clara (paso 26) no
+habia cubierto: el fondo gradient-dark (#0a0e27 -> #1a1d2e) seguia aplicado en
+.app-container y en body, asomandose entre el sidebar y el .main. Tambien el
+.header premium tenia fondo azul translucido.
+
+## Que se corrigio / mejoro
+
+**Eliminacion de todo rastro oscuro** (en la raiz): html, body, .app-container,
+.main y .header forzados a fondo claro con background-image: none. Verificado por
+computo: los tres contenedores ahora miden rgb(238,241,245), cero azul.
+
+**Pulido profesional**:
+  - Sidebar mas elegante: seccion-titulos mas finos, item activo en verde con
+    sombra sutil, mejor espaciado y jerarquia, logo con esquinas redondeadas.
+  - Heros de pagina (ej. "Mesas y zonas") como tarjeta blanca sobria, sin el
+    fondo crema/dorado previo; titulos con mejor peso y tracking.
+  - Botones con mas presencia y micro-interaccion al pulsar.
+  - Chips de leyenda (Libre/Ocupada/...) mas finos y limpios.
+  - Tarjetas con hover sutil (sombra), scrollbar clara y discreta.
+
+## Verificacion
+
+- Revision VISUAL con capturas reales (Chromium) de /mesas y /dashboard: la
+  franja azul desaparecio; fondo uniforme claro de extremo a extremo; sidebar con
+  item activo resaltado; tarjetas y heros limpios y profesionales.
+- Comprobacion por computo: background de app-container/main/body = rgb(238,241,245).
+- Suite: 521 aciertos, 0 fallos (519 previos + 2 nuevos).
+- Sin migracion (solo CSS del tema).
+
+## Lo que sigue
+
+- Separar modulo de meseros (que no mande a la ventana de mesas de la web).
+- Modulos independientes con identidad propia (mesero, cliente, gerencial, web).
+- Motor de reconocimiento facial (fuera de este entorno).
