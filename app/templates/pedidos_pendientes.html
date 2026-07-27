@@ -1,0 +1,75 @@
+{% extends "base.html" %}{% block content %}
+<header><div><p class="eyebrow">APP DE CLIENTE</p><h1>Pedidos pendientes</h1></div></header>
+<p class="muted">Pedidos hechos por los clientes desde la app. Los de mesa se
+   aceptan o rechazan; los de autoservicio se cobran en caja.</p>
+
+<div class="two-col">
+  <section class="panel">
+    <h2>🍽️ Pedidos en mesa <span class="badge" id="badge-mesa">{{ mesa|length }}</span></h2>
+    <div id="lista-mesa">
+      {% for p in mesa %}
+      <div class="panel" data-pedido="{{ p.id }}" style="margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between">
+          <strong>Mesa {{ p.mesa_id }}</strong>
+          <span class="muted">${{ '{:,.0f}'.format(p.total) }}</span>
+        </div>
+        <ul style="margin:8px 0;font-size:14px">
+          {% for l in p.lineas %}<li>{{ l.cantidad|int }}× {{ l.producto.nombre if l.producto else '?' }}{% if l.nota %} <em>({{ l.nota }})</em>{% endif %}</li>{% endfor %}
+        </ul>
+        <div style="display:flex;gap:8px">
+          <button class="btn-sm" onclick="accion({{ p.id }},'aceptar')">Aceptar</button>
+          <button class="btn-sm" style="background:#7f1d1d" onclick="rechazar({{ p.id }})">Rechazar</button>
+        </div>
+      </div>
+      {% else %}<p class="muted">Sin pedidos de mesa pendientes.</p>{% endfor %}
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>🛍️ Autoservicio (a caja) <span class="badge" id="badge-auto">{{ autoservicio|length }}</span></h2>
+    <div id="lista-auto">
+      {% for p in autoservicio %}
+      <div class="panel" data-pedido="{{ p.id }}" style="margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between">
+          <strong>{{ p.nombre_cliente }}</strong>
+          <span class="muted">${{ '{:,.0f}'.format(p.total) }}</span>
+        </div>
+        <ul style="margin:8px 0;font-size:14px">
+          {% for l in p.lineas %}<li>{{ l.cantidad|int }}× {{ l.producto.nombre if l.producto else '?' }}</li>{% endfor %}
+        </ul>
+        <button class="btn-sm" onclick="accion({{ p.id }},'cobrar')">Generar venta para cobrar</button>
+      </div>
+      {% else %}<p class="muted">Sin pedidos de autoservicio pendientes.</p>{% endfor %}
+    </div>
+  </section>
+</div>
+
+<script>
+  async function accion(id, tipo) {
+    const r = await fetch(`/api/cliente/pedido/${id}/${tipo}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin'
+    });
+    const data = await r.json();
+    if (r.ok) {
+      document.querySelector(`[data-pedido="${id}"]`)?.remove();
+      if (tipo === 'cobrar' && data.venta_id) {
+        alert('Venta #' + data.venta_id + ' generada. Ve a Caja para cobrarla.');
+      }
+    } else {
+      alert(data.detail || 'No se pudo procesar');
+    }
+  }
+  async function rechazar(id) {
+    const motivo = prompt('Motivo del rechazo (opcional):') || '';
+    const r = await fetch(`/api/cliente/pedido/${id}/rechazar`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin', body: JSON.stringify({ motivo })
+    });
+    if (r.ok) document.querySelector(`[data-pedido="${id}"]`)?.remove();
+    else alert('No se pudo rechazar');
+  }
+  // Auto-refrescar cada 20s para ver pedidos nuevos.
+  setTimeout(() => location.reload(), 20000);
+</script>
+{% endblock %}

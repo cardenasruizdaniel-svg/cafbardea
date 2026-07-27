@@ -22,6 +22,7 @@
     <link rel="stylesheet" href="/static/css/layout.css">
     <link rel="stylesheet" href="/static/css/dashboard.css">
     <link rel="stylesheet" href="/static/css/app-additional.css">
+    <link rel="stylesheet" href="/static/css/tema-escritorio.css">
     
     <style>
         :root {
@@ -50,6 +51,7 @@
                     <div class="nav-section-title">Operación</div>
                     <a href="/" class="nav-item">📊 Resumen</a>
                     <a href="/mesas" class="nav-item">🪑 Mesas</a>
+                    <a href="/pedidos-pendientes" class="nav-item">🔔 Pedidos de cliente</a>
                     {% if usuario.rol != 'cocina' %}
                     <a href="/caja" class="nav-item">💰 Caja</a>
                     <a href="/domicilios" class="nav-item">🚗 Domicilios</a>
@@ -94,14 +96,25 @@
                 <div class="nav-section">
                     <div class="nav-section-title">Administración</div>
                     <a href="/usuarios" class="nav-item">🔐 Usuarios</a>
+                    <a href="/roles" class="nav-item">🛡️ Roles y permisos</a>
+                    <a href="/impresoras" class="nav-item">🖨️ Impresoras</a>
                     <a href="/configuracion" class="nav-item">⚙️ Configuración</a>
                 </div>
-                {% endif %}
 
+                <div class="nav-section">
+                    <div class="nav-section-title">Apps (revisar)</div>
+                    <a href="/cliente" class="nav-item" target="_blank">🛍️ App de cliente</a>
+                    <a href="/cliente?mesa=1" class="nav-item" target="_blank">🍽️ Cliente en mesa</a>
+                    <a href="/mobile" class="nav-item" target="_blank">📱 App de meseros</a>
+                    <a href="/pedidos-pendientes" class="nav-item">🔔 Gestión de pedidos</a>
+                </div>
+                {% endif %}
+                {% if usuario.rol != 'administrador' %}
                 <div class="nav-section">
                     <div class="nav-section-title">Plataformas</div>
                     <a href="/mobile" class="nav-item">📱 Vista móvil</a>
                 </div>
+                {% endif %}
             </nav>
             
             <div class="sidebar-footer">

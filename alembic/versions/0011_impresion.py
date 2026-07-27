@@ -51,13 +51,27 @@ def upgrade() -> None:
 
     prod = _cols("productos")
     if prod:
+        # En SQLite no se puede ALTER TABLE ... ADD COLUMN con una FK con
+        # nombre de constraint. Se agrega la columna simple; la relacion queda
+        # expresada en el modelo ORM. En PostgreSQL se usa batch para la FK real.
+        bind = op.get_bind()
+        es_sqlite = bind.dialect.name == "sqlite"
         if "grupo_impresion_id" not in prod:
-            op.add_column("productos", sa.Column(
-                "grupo_impresion_id", sa.Integer(),
-                sa.ForeignKey("grupos_impresion.id")))
+            if es_sqlite:
+                op.add_column("productos",
+                              sa.Column("grupo_impresion_id", sa.Integer()))
+            else:
+                op.add_column("productos", sa.Column(
+                    "grupo_impresion_id", sa.Integer(),
+                    sa.ForeignKey("grupos_impresion.id")))
         if "impresora_id" not in prod:
-            op.add_column("productos", sa.Column(
-                "impresora_id", sa.Integer(), sa.ForeignKey("impresoras.id")))
+            if es_sqlite:
+                op.add_column("productos",
+                              sa.Column("impresora_id", sa.Integer()))
+            else:
+                op.add_column("productos", sa.Column(
+                    "impresora_id", sa.Integer(),
+                    sa.ForeignKey("impresoras.id")))
 
 
 def downgrade() -> None:

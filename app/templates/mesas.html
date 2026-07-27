@@ -172,8 +172,6 @@
 	}
 
 	.mesas-page .table {
-		width: 100px;
-		min-height: 94px;
 		border-radius: 20px;
 		text-decoration: none;
 		position: absolute;
@@ -182,13 +180,32 @@
 		place-items: center;
 		gap: 2px;
 		padding: 8px;
+		box-sizing: border-box;
+		overflow: hidden;
 		border: 2px solid #9fd4bc;
 		color: #0f6b4a;
 		background: linear-gradient(165deg, #f2fff9, #dcf7eb);
 		box-shadow: 0 10px 16px rgba(14, 63, 41, 0.15);
-		transition: transform .16s ease, box-shadow .16s ease;
-		cursor: grab;
+		transition: box-shadow .16s ease;
+		cursor: pointer;
 		touch-action: none;
+	}
+	/* En modo editor el cursor invita a arrastrar. */
+	.mesas-page.editor-on .table { cursor: grab; }
+	.mesas-page.editor-on .table.is-dragging { cursor: grabbing; }
+	/* Barra de herramientas de una mesa (solo en modo editor). */
+	.mesas-page .table-tools { display: none; }
+	.mesas-page.editor-on .table.selected .table-tools {
+		display: flex; gap: 4px; position: absolute; top: -34px; left: 50%;
+		transform: translateX(-50%); background: #0f6b4a; padding: 4px 6px;
+		border-radius: 8px; z-index: 30; white-space: nowrap;
+	}
+	.mesas-page .table-tools button {
+		font-size: 11px; padding: 2px 6px; border: none; border-radius: 4px;
+		background: #fff; color: #0f6b4a; cursor: pointer;
+	}
+	.mesas-page.editor-on .table.selected {
+		outline: 3px solid #f59e0b; outline-offset: 2px;
 	}
 
 	.mesas-page .table.is-dragging {
@@ -257,7 +274,6 @@
 
 	.mesas-page .table.rectangular {
 		border-radius: 14px;
-		width: 108px;
 	}
 
 	.mesas-page .zone-empty {
@@ -403,6 +419,7 @@
 	</section>
 
 	<div class="actions">
+		<button type="button" id="toggle-editor" class="button">✎ Modo editor</button>
 		<form action="/zonas" method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 			<input name="nombre" placeholder="Nueva zona" required>
 			<button>Crear zona</button>
@@ -416,6 +433,11 @@
 			</select>
 			<input name="nombre" placeholder="Mesa, ej. B-4" required>
 			<input name="capacidad" type="number" value="4" min="1" aria-label="Capacidad de mesa">
+			<select name="forma" aria-label="Forma de la mesa">
+				<option value="redonda">Redonda</option>
+				<option value="cuadrada">Cuadrada</option>
+				<option value="rectangular">Rectangular</option>
+			</select>
 			<button>Agregar mesa</button>
 		</form>
 	</div>
@@ -434,7 +456,10 @@
 					class="table {{ m.estado }} {{ m.forma }}"
 					data-mesa-id="{{ m.id }}"
 					data-mesa-estado="{{ m.estado }}"
-					style="left:{{ m.posicion_x }}%;top:{{ m.posicion_y }}%"
+					data-mesa-nombre="{{ m.nombre }}"
+					data-mesa-forma="{{ m.forma }}"
+					data-mesa-capacidad="{{ m.capacidad }}"
+					style="left:{{ m.posicion_x }}%;top:{{ m.posicion_y }}%;width:{{ m.ancho or 64 }}px;height:{{ m.alto or 64 }}px"
 					href="/comanda/{{ m.id }}"
 					title="Abrir comanda de {{ m.nombre }}"
 				>
@@ -479,9 +504,10 @@
 			const prevY = Number(tableEl.dataset.posY ?? y);
 
 			try {
-				const response = await fetch(`/api/v1/mesas/${mesaId}`, {
-					method: 'PATCH',
-					headers: { 'Content-Type': 'application/json' },
+				const csrfTok = document.querySelector('input[name="csrf_token"]')?.value || '';
+				const response = await fetch(`/mesas/${mesaId}/layout`, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfTok },
 					credentials: 'same-origin',
 					body: JSON.stringify({
 						posicion_x: Math.round(x),
@@ -537,6 +563,8 @@
 
 			tableEl.addEventListener('pointerdown', (event) => {
 				if (event.button !== 0) return;
+				// Solo se arrastra en modo editor.
+				if (!document.querySelector('.mesas-page').classList.contains('editor-on')) return;
 				floorEl = tableEl.closest('.floor');
 				if (!floorEl) return;
 
@@ -578,9 +606,100 @@
 			});
 
 			tableEl.addEventListener('click', (event) => {
+				const editorOn = document.querySelector('.mesas-page').classList.contains('editor-on');
+				if (editorOn) {
+					// En modo editor el clic NO abre la comanda: selecciona la mesa.
+					event.preventDefault();
+					event.stopPropagation();
+					if (!moved) {
+						document.querySelectorAll('.mesas-page .table.selected')
+							.forEach(t => t.classList.remove('selected'));
+						tableEl.classList.add('selected');
+					}
+					return;
+				}
 				if (moved) {
 					event.preventDefault();
 					event.stopPropagation();
+				}
+			});
+		});
+
+		// ---- Modo editor: alternar y herramientas por mesa ----
+		const page = document.querySelector('.mesas-page');
+		const btnEditor = document.getElementById('toggle-editor');
+		const csrf = document.querySelector('input[name="csrf_token"]')?.value || '';
+
+		async function guardarLayout(mesaId, cambios) {
+			try {
+				const r = await fetch(`/mesas/${mesaId}/layout`, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
+					credentials: 'same-origin',
+					body: JSON.stringify(cambios)
+				});
+				return r.ok;
+			} catch (e) { return false; }
+		}
+
+		if (btnEditor) {
+			btnEditor.addEventListener('click', () => {
+				page.classList.toggle('editor-on');
+				const on = page.classList.contains('editor-on');
+				btnEditor.textContent = on ? '✓ Terminar edición' : '✎ Modo editor';
+				btnEditor.classList.toggle('primary', on);
+				if (!on) {
+					document.querySelectorAll('.mesas-page .table.selected')
+						.forEach(t => t.classList.remove('selected'));
+				}
+			});
+		}
+
+		// Inyectar barra de herramientas en cada mesa (forma, tamaño, eliminar).
+		tables.forEach((tableEl) => {
+			const tools = document.createElement('div');
+			tools.className = 'table-tools';
+			tools.innerHTML = `
+				<button data-act="forma" title="Cambiar forma">◼/●</button>
+				<button data-act="mas" title="Más grande">＋</button>
+				<button data-act="menos" title="Más pequeña">－</button>
+				<button data-act="del" title="Eliminar" style="background:#fecaca;color:#7f1d1d">🗑</button>`;
+			tableEl.appendChild(tools);
+
+			tools.addEventListener('click', async (event) => {
+				const btn = event.target.closest('button');
+				if (!btn) return;
+				event.preventDefault();
+				event.stopPropagation();
+				const mesaId = tableEl.dataset.mesaId;
+				const act = btn.dataset.act;
+
+				if (act === 'forma') {
+					const formas = ['redonda', 'cuadrada', 'rectangular'];
+					const actual = tableEl.dataset.mesaForma || 'redonda';
+					const nueva = formas[(formas.indexOf(actual) + 1) % formas.length];
+					tableEl.dataset.mesaForma = nueva;
+					tableEl.classList.remove('redonda', 'cuadrada', 'rectangular');
+					tableEl.classList.add(nueva);
+					if (nueva === 'rectangular') { tableEl.style.width = '96px'; tableEl.style.height = '56px'; }
+					else { tableEl.style.width = '64px'; tableEl.style.height = '64px'; }
+					await guardarLayout(mesaId, { forma: nueva,
+						ancho: parseInt(tableEl.style.width), alto: parseInt(tableEl.style.height) });
+				} else if (act === 'mas' || act === 'menos') {
+					const paso = act === 'mas' ? 12 : -12;
+					const w = clamp((parseInt(tableEl.style.width) || 64) + paso, 40, 200);
+					const h = clamp((parseInt(tableEl.style.height) || 64) + paso, 40, 200);
+					tableEl.style.width = `${w}px`;
+					tableEl.style.height = `${h}px`;
+					await guardarLayout(mesaId, { ancho: w, alto: h });
+				} else if (act === 'del') {
+					if (!confirm(`¿Eliminar la mesa ${tableEl.dataset.mesaNombre}?`)) return;
+					const form = document.createElement('form');
+					form.method = 'post';
+					form.action = `/mesas/${mesaId}/eliminar`;
+					form.innerHTML = `<input type="hidden" name="csrf_token" value="${csrf}">`;
+					document.body.appendChild(form);
+					form.submit();
 				}
 			});
 		});

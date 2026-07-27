@@ -196,6 +196,7 @@ _MODULOS_RUTA = {
     "auditoria": "auditoria",
     "impresoras": "configuracion",
     "roles": "usuarios",
+    "pedidos-pendientes": "caja",
     "backups": "backups",
 }
 
@@ -224,17 +225,26 @@ async def autenticar_sesion(request: Request, call_next):
 
     # Recursos verdaderamente publicos (sin datos de negocio)
     PUBLICAS_EXACTAS = {"/", "/login", "/logout", "/health",
-                        "/manifest.webmanifest", "/sw.js", "/offline"}
+                        "/manifest.webmanifest", "/sw.js", "/offline",
+                        "/sw-cliente.js"}
     PUBLICAS_PREFIJO = ("/static", "/favicon.ico")
 
     # APIs que se autentican por JWT Bearer en su propia capa,
     # no por cookie de sesion. Se excluyen aqui a proposito.
     JWT_PREFIJO = ("/api/v1/mobile/", "/api/v1/kds/")
 
+    # App de cliente: publica y sin login (el comensal ordena sin cuenta).
+    # Solo las rutas de cliente; la gestion de pedidos (caja/mesero) NO va aqui.
+    CLIENTE_PREFIJO = ("/cliente", "/api/cliente")
+
     # Documentacion interactiva: solo fuera de produccion
     DOCS_PREFIJO = ("/docs", "/redoc", "/openapi.json")
 
     if ruta in PUBLICAS_EXACTAS or ruta.startswith(PUBLICAS_PREFIJO):
+        return await call_next(request)
+
+    # App de cliente: acceso publico sin sesion.
+    if ruta.startswith(CLIENTE_PREFIJO):
         return await call_next(request)
 
     if ruta.startswith(DOCS_PREFIJO):
@@ -431,6 +441,8 @@ app.include_router(mobile_api_router, tags=["Mobile API - FASE 7"])  # FASE 7: M
 app.include_router(kds_api_router, tags=["KDS API - FASE 8"])  # FASE 8: Kitchen Display System
 # Routers antes definidos pero NUNCA registrados (829 lineas inertes).
 app.include_router(dashboard_api_router)
+from .routes.cliente_api import router as cliente_api_router
+app.include_router(cliente_api_router, tags=["App Cliente"])
 app.include_router(reportes_api_router)
 
 @app.get("/login", response_class=HTMLResponse)
@@ -690,6 +702,17 @@ def pwa_service_worker():
         headers={"Cache-Control": "no-cache", "Service-Worker-Allowed": "/"})
 
 
+@app.get("/sw-cliente.js", include_in_schema=False)
+def pwa_sw_cliente():
+    """Service worker de la app de cliente, servido desde la raiz para tener
+    scope sobre /cliente."""
+    from fastapi.responses import FileResponse
+    return FileResponse(
+        str(APP_DIR / "static" / "sw-cliente.js"),
+        media_type="application/javascript",
+        headers={"Cache-Control": "no-cache", "Service-Worker-Allowed": "/cliente"})
+
+
 @app.get("/offline", response_class=HTMLResponse, include_in_schema=False)
 def pwa_offline(request: Request):
     return templates.TemplateResponse(request, "offline.html", {})
@@ -729,12 +752,88 @@ def mesas(request: Request, db: Session = Depends(get_db)):
     })
 
 @app.post("/zonas")
-def crear_zona(nombre: str = Form(...), db: Session = Depends(get_db)):
-    db.add(Zona(nombre=nombre, orden=db.scalar(select(func.count(Zona.id)))+1)); db.commit(); return RedirectResponse("/mesas",303)
+def crear_zona(request: Request, nombre: str = Form(...),
+               db: Session = Depends(get_db)):
+    exigir_rol(request, "administrador", "gerente")
+    db.add(Zona(nombre=nombre.strip(),
+                orden=(db.scalar(select(func.count(Zona.id))) or 0) + 1))
+    db.commit()
+    return RedirectResponse("/mesas", 303)
+
+
+@app.post("/zonas/{zona_id}/eliminar")
+def eliminar_zona(zona_id: int, request: Request, db: Session = Depends(get_db)):
+    """Elimina una zona solo si no tiene mesas."""
+    exigir_rol(request, "administrador", "gerente")
+    zona = db.get(Zona, zona_id)
+    if not zona:
+        raise HTTPException(404, "Zona no encontrada")
+    if db.scalar(select(func.count(Mesa.id)).where(Mesa.zona_id == zona_id)):
+        raise HTTPException(400, "No se puede eliminar: la zona tiene mesas. Muévelas o elimínalas primero.")
+    db.delete(zona)
+    db.commit()
+    return RedirectResponse("/mesas", 303)
 
 @app.post("/mesas")
-def crear_mesa(zona_id:int=Form(...),nombre:str=Form(...),capacidad:int=Form(4),db:Session=Depends(get_db)):
-    db.add(Mesa(zona_id=zona_id,nombre=nombre,capacidad=capacidad)); db.commit(); return RedirectResponse("/mesas",303)
+def crear_mesa(request: Request, zona_id: int = Form(...), nombre: str = Form(...),
+               capacidad: int = Form(4), forma: str = Form("redonda"),
+               db: Session = Depends(get_db)):
+    exigir_rol(request, "administrador", "gerente")
+    # Posicion inicial escalonada para que las mesas nuevas no queden encimadas.
+    n = db.scalar(select(func.count(Mesa.id)).where(Mesa.zona_id == zona_id)) or 0
+    px = 8 + (n % 6) * 15
+    py = 10 + (n // 6) * 20
+    tamano = {"rectangular": (96, 56)}.get(forma, (64, 64))
+    db.add(Mesa(zona_id=zona_id, nombre=nombre.strip(), capacidad=capacidad,
+                forma=forma, posicion_x=px, posicion_y=py,
+                ancho=tamano[0], alto=tamano[1]))
+    db.commit()
+    return RedirectResponse("/mesas", 303)
+
+
+@app.post("/mesas/{mesa_id}/layout")
+async def guardar_layout_mesa(mesa_id: int, request: Request,
+                              db: Session = Depends(get_db)):
+    """Guarda posicion, forma y tamano de una mesa (arrastrar/redimensionar).
+
+    Recibe JSON del editor visual. Solo administradores y gerentes.
+    """
+    exigir_rol(request, "administrador", "gerente")
+    mesa = db.get(Mesa, mesa_id)
+    if not mesa:
+        raise HTTPException(404, "Mesa no encontrada")
+    datos = await request.json()
+    # Se aceptan solo campos de disposicion; con limites sanos.
+    if "posicion_x" in datos:
+        mesa.posicion_x = max(0, min(100, int(datos["posicion_x"])))
+    if "posicion_y" in datos:
+        mesa.posicion_y = max(0, min(100, int(datos["posicion_y"])))
+    if "forma" in datos and datos["forma"] in ("redonda", "cuadrada", "rectangular"):
+        mesa.forma = datos["forma"]
+    if "ancho" in datos:
+        mesa.ancho = max(32, min(240, int(datos["ancho"])))
+    if "alto" in datos:
+        mesa.alto = max(32, min(240, int(datos["alto"])))
+    if "capacidad" in datos:
+        mesa.capacidad = max(1, min(50, int(datos["capacidad"])))
+    db.commit()
+    return {"ok": True, "mesa_id": mesa_id}
+
+
+@app.post("/mesas/{mesa_id}/eliminar")
+def eliminar_mesa(mesa_id: int, request: Request, db: Session = Depends(get_db)):
+    """Elimina una mesa si no tiene una venta abierta."""
+    exigir_rol(request, "administrador", "gerente")
+    mesa = db.get(Mesa, mesa_id)
+    if not mesa:
+        raise HTTPException(404, "Mesa no encontrada")
+    venta_abierta = db.scalar(select(Venta).where(
+        Venta.mesa_id == mesa_id, Venta.estado == "abierta"))
+    if venta_abierta:
+        raise HTTPException(400, "No se puede eliminar: la mesa tiene una cuenta abierta")
+    db.delete(mesa)
+    db.commit()
+    return RedirectResponse("/mesas", 303)
 
 @app.get("/comanda/{mesa_id}", response_class=HTMLResponse)
 def comanda(mesa_id:int,request:Request,db:Session=Depends(get_db)):
@@ -1331,6 +1430,17 @@ def anular_produccion_web(orden_id: int, request: Request,
         db.rollback()
         raise HTTPException(400, str(e))
     return RedirectResponse("/produccion", 303)
+
+@app.get("/pedidos-pendientes", response_class=HTMLResponse)
+def pedidos_pendientes(request: Request, db: Session = Depends(get_db)):
+    """Pantalla del personal: pedidos de cliente pendientes (mesa y autoservicio)."""
+    from .domains.pedidos_cliente.services import PedidoClienteService
+    svc = PedidoClienteService(db)
+    return templates.TemplateResponse(request, "pedidos_pendientes.html",
+        context(request, db) | {
+            "autoservicio": svc.listar_pendientes(tipo="autoservicio"),
+            "mesa": svc.listar_pendientes(tipo="mesa")})
+
 
 @app.get("/caja", response_class=HTMLResponse)
 def caja(request: Request, db: Session = Depends(get_db)):

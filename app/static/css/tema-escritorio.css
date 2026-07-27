@@ -1,0 +1,180 @@
+/* ============================================================================
+   TEMA ESCRITORIO CLARO — Paso 26
+   Rediseño a un panel profesional claro que aprovecha el ancho de pantalla.
+   Se carga al final para sobrescribir el tema oscuro previo con precision.
+   ============================================================================ */
+
+:root {
+  /* Paleta clara profesional */
+  --e-bg: #eef1f5;            /* fondo general (gris muy claro) */
+  --e-surface: #ffffff;       /* paneles y tarjetas */
+  --e-surface-2: #f7f9fb;     /* superficie secundaria (encabezados de tabla) */
+  --e-text: #1a2233;          /* texto principal (carbon azulado) */
+  --e-text-soft: #5b6472;     /* texto secundario */
+  --e-border: #e3e8ee;        /* bordes sutiles */
+  --e-border-strong: #cfd6df;
+  --e-brand: #0f6b4a;         /* verde de marca (coincide con app cliente) */
+  --e-brand-soft: #e7f3ee;
+  --e-brand-strong: #0c5539;
+  --e-accent: #c8a24a;        /* dorado tenue, solo detalles */
+  --e-shadow: 0 1px 3px rgba(20,34,51,.06), 0 4px 12px rgba(20,34,51,.05);
+  --e-shadow-lg: 0 8px 28px rgba(20,34,51,.10);
+}
+
+/* ---- Lienzo general: fondo claro, mas ancho aprovechado ---- */
+body.platform-web { background: var(--e-bg); color: var(--e-text); }
+
+.main { background: var(--e-bg) !important; }
+
+.main-content {
+  max-width: 1800px !important;         /* aprovechar pantallas anchas */
+  padding: 2rem 2.5rem !important;      /* menos aire desperdiciado */
+  margin: 0 auto !important;
+}
+@media (min-width: 1700px) {
+  .main-content { max-width: 1860px !important; }
+}
+
+/* ---- Sidebar: claro, limpio ---- */
+.sidebar {
+  background: var(--e-surface) !important;
+  border-right: 1px solid var(--e-border) !important;
+}
+.sidebar-header { border-bottom: 1px solid var(--e-border) !important; }
+.brand-name { color: var(--e-text) !important; }
+.brand-subtitle, .nav-section-title { color: var(--e-text-soft) !important; }
+.nav-item { color: var(--e-text-soft) !important; border-radius: 8px; }
+.nav-item:hover {
+  background: var(--e-brand-soft) !important; color: var(--e-brand-strong) !important;
+}
+.nav-item.active, .nav-item[aria-current="page"] {
+  background: var(--e-brand) !important; color: #fff !important;
+}
+.sidebar-logo {
+  background: var(--e-brand) !important; color: #fff !important;
+}
+
+/* ---- Encabezados de pagina ---- */
+.page-header .page-title, .main h1, header h1 { color: var(--e-text) !important; }
+.page-header .page-subtitle, .eyebrow { color: var(--e-text-soft) !important; }
+.eyebrow { letter-spacing: .08em; text-transform: uppercase; font-size: 12px; font-weight: 700; color: var(--e-brand) !important; }
+
+/* ---- Paneles y tarjetas: superficie blanca, sombra sutil ---- */
+.panel, .card, .stat-card, .dashboard-card, section.panel {
+  background: var(--e-surface) !important;
+  border: 1px solid var(--e-border) !important;
+  border-radius: 14px !important;
+  box-shadow: var(--e-shadow) !important;
+  color: var(--e-text) !important;
+}
+.panel h2, .panel h3, .card h2, .card h3 { color: var(--e-text) !important; }
+
+/* ---- Grids que aprovechan el ancho ---- */
+.two-col {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)) !important;
+  gap: 1.5rem !important;
+}
+.stats {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)) !important;
+  gap: 1.25rem !important;
+}
+
+/* ---- Tablas mas anchas y legibles ---- */
+table { width: 100% !important; border-collapse: collapse !important; }
+th {
+  background: var(--e-surface-2) !important; color: var(--e-text-soft) !important;
+  text-align: left; font-size: 13px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .03em; padding: 12px 14px !important;
+  border-bottom: 1px solid var(--e-border) !important;
+}
+td {
+  padding: 12px 14px !important; color: var(--e-text) !important;
+  border-bottom: 1px solid var(--e-border) !important;
+}
+tr:hover td { background: var(--e-brand-soft) !important; }
+
+/* ---- Botones ---- */
+button, .button, .btn, input[type="submit"] {
+  border-radius: 10px !important;
+  font-weight: 600 !important;
+}
+button:not(.btn-sm):not(.secondary):not([style*="background"]),
+.button:not(.secondary), .btn-primary {
+  background: var(--e-brand) !important; color: #fff !important;
+  border: none !important;
+}
+button:hover:not(.btn-sm):not(.secondary),
+.button:hover:not(.secondary) { background: var(--e-brand-strong) !important; }
+.btn-sm {
+  background: var(--e-brand) !important; color: #fff !important;
+  border: none !important; border-radius: 8px !important;
+  padding: 6px 12px !important; font-size: 13px !important;
+}
+.secondary {
+  background: var(--e-surface) !important; color: var(--e-brand) !important;
+  border: 1px solid var(--e-border-strong) !important;
+}
+
+/* ---- Formularios ---- */
+input, select, textarea {
+  background: var(--e-surface) !important; color: var(--e-text) !important;
+  border: 1px solid var(--e-border-strong) !important;
+  border-radius: 10px !important; padding: 10px 12px !important;
+}
+input:focus, select:focus, textarea:focus {
+  outline: none !important; border-color: var(--e-brand) !important;
+  box-shadow: 0 0 0 3px var(--e-brand-soft) !important;
+}
+
+/* ---- Estadisticas destacadas ---- */
+.stat-card strong, .stat-value, .stats article strong {
+  color: var(--e-brand) !important; font-weight: 800 !important;
+}
+.muted { color: var(--e-text-soft) !important; }
+
+/* ---- Tarjetas de estadistica (articles dentro de .stats) ---- */
+.stats article, .stats > article {
+  background: var(--e-surface) !important;
+  border: 1px solid var(--e-border) !important;
+  border-radius: 14px !important;
+  box-shadow: var(--e-shadow) !important;
+  padding: 1.25rem 1.5rem !important;
+  color: var(--e-text) !important;
+}
+.stats article *, .stats > article * { color: var(--e-text) !important; }
+.stats article strong, .stats article .stat-value {
+  color: var(--e-brand) !important; font-size: 2rem !important;
+}
+.stats article small, .stats article span:not(.stat-value) {
+  color: var(--e-text-soft) !important;
+}
+
+/* ---- Textos de encabezado y titulos: forzar color oscuro sobre claro ---- */
+.main h1, .main h2, .main h3, .main header h1, .main header h2,
+.main p, .main label, .main span, .main small, .main strong, .main td,
+.main li, .main div {
+  color: var(--e-text);
+}
+.main a { color: var(--e-brand); }
+/* pero las excepciones de color de marca/acento se conservan arriba con !important */
+
+/* Tendencia (verde/rojo) del dashboard */
+.kpi-tendencia { color: var(--e-text-soft) !important; }
+
+/* ---- Badges ---- */
+.badge {
+  background: var(--e-brand-soft) !important; color: var(--e-brand-strong) !important;
+  border-radius: 999px !important; padding: 3px 10px !important;
+  font-size: 12px !important; font-weight: 700 !important;
+}
+
+/* ---- Accesibilidad: foco visible de teclado ---- */
+a:focus-visible, button:focus-visible, input:focus-visible,
+select:focus-visible { outline: 2px solid var(--e-brand) !important; outline-offset: 2px; }
+
+/* ---- Respeto a movimiento reducido ---- */
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}

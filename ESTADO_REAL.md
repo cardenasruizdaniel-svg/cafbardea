@@ -1439,3 +1439,244 @@ reales de la base de datos.
 
 - App de cliente (mesa / autoservicio) y su modo offline.
 - Motor de reconocimiento facial (fuera de este entorno).
+
+
+---
+
+# Paso 24: Editor de mesas profesional (plano configurable)
+
+Atiende el reporte de que "al crear una mesa no dejaba" y la vision de un plano de
+salon al estilo de un restaurante de primer nivel: crear zonas y mesas, y
+arrastrarlas libremente para ubicarlas donde el usuario quiera.
+
+## Diagnostico del problema real
+
+La creacion de mesas SI funcionaba (respondia 303), pero habia tres problemas que
+hacian que la experiencia se sintiera rota:
+  1. Todas las mesas nuevas nacian en la misma posicion (0,0), encimadas una
+     sobre otra, dando la impresion de que "no se creaban".
+  2. El plano tenia arrastre, pero cada mesa era un enlace a la comanda: al
+     intentar moverla se abria la comanda. No habia separacion entre "operar" y
+     "editar el plano".
+  3. El tamano de las mesas estaba fijo en CSS; el modelo no permitia mesas de
+     distinto tamano.
+
+## Decisiones del usuario
+
+1. Arrastrar y soltar libremente (posicion exacta con el mouse).
+2. Formas (redonda/cuadrada/rectangular) + capacidad + TAMANO configurable.
+
+## Que se construyo
+
+**Modo editor**: un boton "Modo editor" separa la operacion diaria (tocar una
+mesa abre su comanda) de la configuracion del plano (arrastrar, seleccionar,
+cambiar forma/tamano, eliminar). En modo normal el plano opera como siempre.
+
+**Arrastrar y soltar libre**: en modo editor, cada mesa se arrastra a la posicion
+exacta y se guarda automaticamente (endpoint /mesas/{id}/layout).
+
+**Personalizacion por mesa**: al seleccionar una mesa en modo editor aparece una
+barra con cambiar forma, agrandar, achicar y eliminar. Nuevos campos ancho/alto.
+
+**Crear con forma**: el formulario de nueva mesa ahora incluye la forma; las
+mesas nuevas nacen escalonadas (no encimadas) y con el tamano propio de su forma.
+
+**Zonas gestionables**: crear y eliminar zonas (una zona con mesas no se puede
+eliminar hasta moverlas). Crear mesas/zonas y editar el plano exige rol
+administrador o gerente; un mesero no puede (403).
+
+## Bug preexistente corregido (migracion 0011, del paso 21)
+
+Al probar la migracion sobre una base antigua, la 0011 fallaba en SQLite:
+"No support for ALTER of constraints in SQLite" al agregar columnas con llave
+foranea a productos. Se corrigio agregando esas columnas sin la FK inline en
+SQLite (la relacion queda en el modelo ORM; en PostgreSQL se mantiene la FK).
+Sin este arreglo, actualizar una instalacion SQLite existente habria fallado.
+
+## Verificacion
+
+- End-to-end: crear zona, crear mesa (con forma y tamano correctos, posicion
+  escalonada), mover, cambiar forma/tamano, eliminar mesa, eliminar zona vacia.
+- Protecciones: no eliminar zona con mesas (400), gerente si puede (303), mesero
+  no (403).
+- Suite: 497 aciertos, 0 fallos (489 previos + 8 nuevos).
+- Migracion 0013 idempotente; cadena 0001->0013 desde vacio (13), ciclo
+  downgrade+upgrade, y ahora tambien sobre base antigua (con el arreglo de 0011).
+
+## Bloque del nuevo alcance aun pendiente
+
+- App de cliente (mesa / autoservicio) y su modo offline.
+- Motor de reconocimiento facial (fuera de este entorno).
+
+
+---
+
+# Paso 25: App de cliente (autoservicio y pedido en mesa) - primer bloque
+
+Primer bloque del gran alcance de la app de cliente. Backend, API y flujo
+completo, mas la interfaz del cliente y la pantalla de gestion del personal.
+
+## Decisiones del usuario
+
+1. Empezar por el backend y flujo de la app de cliente.
+2. Autoservicio: el cliente solo ordena; paga en caja al recoger.
+3. Pedido en mesa: queda pendiente hasta que un mesero lo acepte o rechace.
+
+## Que se construyo
+
+**Modelos** PedidoCliente + PedidoClienteLinea: el pedido del cliente vive en su
+propia tabla, ANTES de convertirse en venta. No toca inventario ni ventas hasta
+que se acepta (mesa) o se cobra (autoservicio). Un pedido rechazado no deja
+rastro contable.
+
+**Flujo (PedidoClienteService)**:
+  - autoservicio -> pendiente -> caja lo cobra -> genera venta (abierta, con el
+    nombre del cliente en la observacion) -> se marca entregado.
+  - mesa -> pendiente -> el mesero ACEPTA (genera la comanda/venta en esa mesa) o
+    RECHAZA (con motivo). No se puede reprocesar un pedido ya resuelto.
+
+**API del cliente (publica, sin login)**: GET carta, POST pedido, GET estado.
+Exenta de CSRF y de sesion (el comensal no tiene cuenta), pero SOLO las rutas de
+cliente; la gestion sigue protegida.
+
+**API de gestion (con sesion)**: listar pendientes, aceptar, rechazar, cobrar.
+
+**Interfaz del cliente** (/cliente): pagina autonoma con identidad propia (no usa
+el layout de gestion). Carta con buscador, carrito, y envio. Con ?mesa=N arranca
+en modo mesa; sin parametro, en autoservicio. Mensajes distintos segun el tipo.
+
+**Pantalla del personal** (/pedidos-pendientes): dos columnas (mesa /
+autoservicio) con aceptar, rechazar y cobrar. Enlazada en el menu. Auto-refresco.
+
+## Nota de seguridad
+
+Las rutas /cliente y /api/cliente son publicas por diseno (el comensal ordena sin
+cuenta). Se agregaron como prefijo publico y exento de CSRF de forma acotada; la
+API de gestion (/api/cliente/pendientes, aceptar, etc.) exige sesion y devuelve
+401 sin ella. Verificado.
+
+## Verificacion
+
+- Servicio: crear autoservicio/mesa, validaciones (nombre, mesa), aceptar (genera
+  venta), rechazar (con motivo), no reprocesar, cobrar autoservicio.
+- API publica sin login: carta, crear pedido, pagina; pendientes da 401 sin login.
+- Gestion con login: ver, aceptar. Vista /pedidos-pendientes carga.
+- Suite: 510 aciertos, 0 fallos (497 previos + 13 nuevos).
+- Migracion 0014 idempotente; cadena 0001->0014 desde vacio (14) y ciclo
+  downgrade+upgrade.
+
+## Lo que sigue en el alcance de la app de cliente / rediseno
+
+- Modo offline de la app de cliente (parte del bloque grande).
+- Rediseno web para escritorio (mas amplio, menos compacto).
+- Separar modulo de meseros (que no mande a la ventana de mesas de la web).
+- Modulos independientes con identidad propia (mesero, cliente, gerencial, web).
+- Motor de reconocimiento facial (fuera de este entorno).
+
+
+---
+
+# Paso 26: Rediseno web para escritorio (tema claro profesional)
+
+Atiende el pedido de que la web se veia "muy compacta como si fuera para movil"
+y la idea de un panel de escritorio mas amplio y comodo.
+
+## Decisiones del usuario
+
+1. Aprovechar el ancho: paneles y tablas mas anchos, menos espacio vacio a los
+   lados.
+2. Modernizar a un estilo claro y limpio tipo panel profesional.
+
+## Que se construyo
+
+**Capa de tema claro** (static/css/tema-escritorio.css): se carga al final y
+sobrescribe el tema oscuro previo con precision, sin reescribir los 5 CSS
+existentes (mas seguro y reversible). Cambios:
+  - Paleta clara profesional: fondo gris muy claro, superficies blancas, texto
+    carbon, bordes sutiles, verde de marca (#0f6b4a, coherente con la app de
+    cliente) como acento, dorado tenue solo en detalles.
+  - Ancho aprovechado: contenedor principal a 1800px (antes se sentia estrecho),
+    menos padding lateral desperdiciado.
+  - Grids que se expanden: tarjetas de estadistica y paneles en auto-fit para
+    llenar el ancho disponible.
+  - Tablas mas anchas y legibles; cabeceras claras, filas con hover verde suave.
+  - Botones, formularios, badges y foco de teclado con el estilo claro.
+
+## Verificacion
+
+- Revision VISUAL con capturas reales (render headless con Chromium) del
+  dashboard e informes: fondo claro, sidebar blanca, tarjetas blancas con cifras
+  en verde, texto oscuro legible, botones integrados. Se corrigio en una segunda
+  pasada el contraste de las tarjetas de estadistica y titulos que heredaban
+  color claro.
+- Todas las paginas clave cargan (dashboard, productos, informes, mesas,
+  pedidos-pendientes, caja).
+- Suite: 510 aciertos, 0 fallos (sin cambios funcionales) + 3 tests de tema.
+- Sin migracion (solo CSS y plantilla base).
+
+## Nota
+
+El color de marca por empresa sigue siendo personalizable (variable --primary en
+base.html). El tema define la estructura clara; ese acento se respeta.
+
+## Lo que sigue
+
+- App de cliente: modo offline.
+- Separar modulo de meseros (que no mande a la ventana de mesas de la web).
+- Modulos independientes con identidad propia (mesero, cliente, gerencial, web).
+- Motor de reconocimiento facial (fuera de este entorno).
+
+
+---
+
+# Paso 27: App de cliente offline + enlaces a apps (solo admin)
+
+Segundo bloque de la app de cliente (el modo offline) y un acceso rapido para
+que el admin revise cada app desde el menu.
+
+## Decisiones del usuario
+
+1. Offline: ver la carta Y armar el pedido sin conexion; se envia solo al volver
+   la red.
+2. Enlaces a las apps: una seccion en el menu lateral, visible solo para admin.
+
+## Que se construyo
+
+**Modo offline de la app de cliente**:
+  - Service worker dedicado (sw-cliente.js), servido desde la raiz con scope
+    /cliente. A diferencia del SW general (que por seguridad NO cachea HTML
+    autenticado), este si cachea la pagina publica del cliente y la carta.
+  - La carta se guarda ademas en localStorage; si no hay red, se muestra la
+    ultima carta guardada con un aviso de "sin conexion".
+  - Cola de pedidos offline: si el envio falla por falta de red, el pedido se
+    guarda en localStorage y se reintenta automaticamente al volver la conexion
+    (evento 'online') o al reabrir la app. Aviso visual mientras esta encolado.
+
+**Enlaces a las apps (solo admin)**: nueva seccion "Apps (revisar)" en el menu
+lateral, visible unicamente para el rol administrador, con accesos a: app de
+cliente (autoservicio), cliente en mesa, app de meseros y gestion de pedidos.
+Se agregaron tambien Roles e Impresoras a la seccion de Administracion. Los roles
+no-admin siguen viendo solo su "Vista movil".
+
+## Verificacion
+
+- Modo offline probado con NAVEGADOR REAL (Chromium) y servidor en proceso,
+  simulando corte de red:
+    carta_online=28 productos, carta_cacheada=true,
+    pedido offline encolado=1, carta visible tras recargar OFFLINE=28,
+    cola vaciada tras reconectar=0 (se envio solo).
+- Enlaces: admin ve la seccion Apps; un mesero no la ve.
+- Suite: 519 aciertos, 0 fallos (513 previos + 6 nuevos).
+- Sin migracion (service worker, plantilla y ruta).
+
+## Nota de seguridad
+
+El SW del cliente solo cachea rutas /cliente y /api/cliente (publicas). Jamas
+toca rutas autenticadas del sistema. El SW general del sistema sigue igual de
+conservador.
+
+## Lo que sigue
+
+- Separar modulo de meseros (que no mande a la ventana de mesas de la web).
+- Modulos independientes con identidad propia (mesero, cliente, gerencial, web).
+- Motor de reconocimiento facial (fuera de este entorno).

@@ -140,7 +140,7 @@ def main() -> int:
     if pendientes:
         print(f"PENDIENTE: {pendientes} elemento(s). Ejecute: alembic upgrade head")
         return 1
-    print("Todo al dia. La base tiene el esquema de los pasos 4-21.")
+    print("Todo al dia. La base tiene el esquema de los pasos 4-25.")
     return 0
 
 

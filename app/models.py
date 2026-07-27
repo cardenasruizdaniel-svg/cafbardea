@@ -77,6 +77,9 @@ class Mesa(Base):
     posicion_x: Mapped[int] = mapped_column(Integer, default=0)
     posicion_y: Mapped[int] = mapped_column(Integer, default=0)
     forma: Mapped[str] = mapped_column(String(15), default="redonda")
+    # Tamano de la mesa en el plano (px). Permite mesas mas grandes o pequenas.
+    ancho: Mapped[int] = mapped_column(Integer, default=64, server_default="64")
+    alto: Mapped[int] = mapped_column(Integer, default=64, server_default="64")
     estado: Mapped[str] = mapped_column(String(20), default="libre")
 
     # --- Datos operativos del servicio en curso ---
@@ -153,6 +156,63 @@ class GrupoImpresion(Base):
         ForeignKey("impresoras.id"), nullable=True)
     activo: Mapped[bool] = mapped_column(
         Boolean, default=True, server_default=sa_true())
+
+
+class PedidoCliente(Base):
+    """Pedido hecho por el cliente desde la app de cliente (autoservicio o mesa).
+
+    Es un pedido PREVIO a la venta: existe mientras espera atencion.
+      - autoservicio: el cliente ordena con su nombre; llega a caja como comanda
+        pendiente de pago; paga en caja al recoger.
+      - mesa: el cliente ordena desde la mesa; queda pendiente hasta que un mesero
+        lo acepte (se convierte en comanda/venta) o lo rechace.
+
+    Estados:
+      pendiente  -> recien creado, esperando (caja o mesero)
+      aceptado   -> el mesero lo acepto (mesa) y se genero la venta
+      rechazado  -> el mesero lo rechazo (mesa)
+      entregado  -> autoservicio pagado/entregado en caja
+      cancelado  -> anulado
+    """
+    __tablename__ = "pedidos_cliente"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    empresa_id: Mapped[int] = mapped_column(ForeignKey("empresas.id"), default=1)
+    # tipo: 'autoservicio' o 'mesa'
+    tipo: Mapped[str] = mapped_column(String(15), default="autoservicio")
+    # nombre que el cliente escribe (autoservicio) o referencia
+    nombre_cliente: Mapped[str] = mapped_column(String(80), default="")
+    # mesa asociada (solo pedidos de tipo mesa)
+    mesa_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("mesas.id"), nullable=True)
+    estado: Mapped[str] = mapped_column(String(15), default="pendiente")
+    total: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=0)
+    observacion: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    creado: Mapped[datetime] = mapped_column(DateTime, default=hora_colombia)
+    atendido: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    # venta generada al aceptar (mesa) o cobrar (autoservicio)
+    venta_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("ventas.id"), nullable=True)
+    # motivo si se rechaza
+    motivo_rechazo: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+
+    lineas: Mapped[list["PedidoClienteLinea"]] = relationship(
+        back_populates="pedido", cascade="all, delete-orphan")
+
+
+class PedidoClienteLinea(Base):
+    """Linea de un pedido de cliente (producto + cantidad)."""
+    __tablename__ = "pedidos_cliente_lineas"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    pedido_id: Mapped[int] = mapped_column(
+        ForeignKey("pedidos_cliente.id"), nullable=False)
+    producto_id: Mapped[int] = mapped_column(
+        ForeignKey("productos.id"), nullable=False)
+    cantidad: Mapped[Decimal] = mapped_column(Numeric(10, 2), default=1)
+    precio_unitario: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=0)
+    nota: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+
+    pedido: Mapped["PedidoCliente"] = relationship(back_populates="lineas")
+    producto: Mapped["Producto"] = relationship()
 
 
 class Categoria(Base):

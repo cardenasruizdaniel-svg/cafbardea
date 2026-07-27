@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Haz tu pedido · CafBarDLA</title>
+<style>
+  :root {
+    --verde: #0f6b4a; --verde-claro: #16a34a; --crema: #faf7f0;
+    --carbon: #1f2420; --borde: #e5e0d5; --sombra: 0 8px 24px rgba(15,63,41,.12);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: var(--crema); color: var(--carbon); padding-bottom: 120px;
+  }
+  header.cliente-hero {
+    background: linear-gradient(135deg, var(--verde), var(--verde-claro));
+    color: #fff; padding: 28px 20px; border-radius: 0 0 24px 24px;
+    box-shadow: var(--sombra);
+  }
+  .cliente-hero h1 { font-size: 24px; margin-bottom: 4px; }
+  .cliente-hero p { opacity: .9; font-size: 14px; }
+  .modo-badge {
+    display: inline-block; margin-top: 10px; background: rgba(255,255,255,.2);
+    padding: 5px 12px; border-radius: 999px; font-size: 13px; font-weight: 600;
+  }
+  main { max-width: 720px; margin: 0 auto; padding: 16px; }
+  .buscador {
+    width: 100%; padding: 12px 16px; border: 1px solid var(--borde);
+    border-radius: 12px; font-size: 15px; margin: 16px 0; background: #fff;
+  }
+  .categoria-titulo {
+    font-size: 13px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .5px; color: var(--verde); margin: 20px 0 8px;
+  }
+  .producto {
+    display: flex; justify-content: space-between; align-items: center;
+    background: #fff; border: 1px solid var(--borde); border-radius: 14px;
+    padding: 14px 16px; margin-bottom: 10px;
+  }
+  .producto-info h3 { font-size: 15px; margin-bottom: 2px; }
+  .producto-info .precio { color: var(--verde); font-weight: 700; font-size: 14px; }
+  .cantidad-control { display: flex; align-items: center; gap: 10px; }
+  .cantidad-control button {
+    width: 32px; height: 32px; border-radius: 50%; border: none;
+    background: var(--verde); color: #fff; font-size: 18px; cursor: pointer;
+    display: grid; place-items: center;
+  }
+  .cantidad-control button:disabled { background: #cbd5c8; cursor: default; }
+  .cantidad-control .cant { min-width: 22px; text-align: center; font-weight: 600; }
+  .carrito-flotante {
+    position: fixed; bottom: 0; left: 0; right: 0; background: #fff;
+    border-top: 1px solid var(--borde); padding: 16px;
+    box-shadow: 0 -6px 20px rgba(0,0,0,.08);
+  }
+  .carrito-flotante .fila {
+    max-width: 720px; margin: 0 auto; display: flex; gap: 12px;
+    align-items: center; justify-content: space-between;
+  }
+  .btn-pedir {
+    flex: 1; background: var(--verde); color: #fff; border: none;
+    padding: 15px; border-radius: 14px; font-size: 16px; font-weight: 700;
+    cursor: pointer;
+  }
+  .btn-pedir:disabled { background: #cbd5c8; cursor: default; }
+  .total-carrito { font-size: 18px; font-weight: 800; color: var(--verde); }
+  .modal {
+    position: fixed; inset: 0; background: rgba(0,0,0,.5); display: none;
+    place-items: center; padding: 20px; z-index: 100;
+  }
+  .modal.activo { display: grid; }
+  .modal-caja {
+    background: #fff; border-radius: 20px; padding: 24px; max-width: 400px;
+    width: 100%; text-align: center;
+  }
+  .modal-caja input {
+    width: 100%; padding: 12px; border: 1px solid var(--borde);
+    border-radius: 12px; font-size: 15px; margin: 12px 0;
+  }
+  .modal-caja .btn-pedir { width: 100%; }
+  .exito { font-size: 48px; margin-bottom: 8px; }
+</style>
+</head>
+<body>
+<header class="cliente-hero">
+  <h1>Haz tu pedido</h1>
+  {% if mesa_id %}
+  <p>Estás ordenando desde tu mesa</p>
+  <span class="modo-badge">🍽️ Mesa {{ mesa_nombre }}</span>
+  {% else %}
+  <p>Autoservicio · pide y paga en caja al recoger</p>
+  <span class="modo-badge">🛍️ Para recoger</span>
+  {% endif %}
+</header>
+
+<main>
+  <input type="text" class="buscador" id="buscador" placeholder="Buscar producto...">
+  <div id="carta"><p style="text-align:center;color:#999;padding:40px">Cargando carta...</p></div>
+</main>
+
+<div class="carrito-flotante" id="carrito" style="display:none">
+  <div class="fila">
+    <span class="total-carrito" id="total-carrito">$0</span>
+    <button class="btn-pedir" id="btn-pedir" onclick="abrirConfirmacion()">
+      Hacer pedido (<span id="items-count">0</span>)
+    </button>
+  </div>
+</div>
+
+<div class="modal" id="modal">
+  <div class="modal-caja" id="modal-contenido">
+    {% if not mesa_id %}
+    <h2>¿A nombre de quién?</h2>
+    <input type="text" id="nombre-cliente" placeholder="Tu nombre" maxlength="80">
+    {% else %}
+    <h2>Confirmar pedido</h2>
+    <p style="color:#666;font-size:14px">Un mesero confirmará tu pedido.</p>
+    {% endif %}
+    <button class="btn-pedir" onclick="enviarPedido()">Enviar pedido</button>
+    <button onclick="cerrarModal()" style="background:none;border:none;color:#999;margin-top:12px;cursor:pointer">Cancelar</button>
+  </div>
+</div>
+
+<script>
+  const MESA_ID = {{ mesa_id or 'null' }};
+  const carrito = {};
+  let productos = [];
+
+  async function cargarCarta() {
+    try {
+      const r = await fetch('/api/cliente/carta');
+      const data = await r.json();
+      productos = data.productos;
+      // Guardar la carta para poder verla sin conexion.
+      try { localStorage.setItem('carta_cache', JSON.stringify(productos)); } catch (e) {}
+      renderCarta(productos);
+    } catch (e) {
+      // Sin conexion: usar la ultima carta guardada.
+      const cache = localStorage.getItem('carta_cache');
+      if (cache) {
+        productos = JSON.parse(cache);
+        renderCarta(productos);
+        mostrarAvisoOffline();
+      } else {
+        document.getElementById('carta').innerHTML =
+          '<p style="text-align:center;color:#999;padding:40px">Sin conexión y sin carta guardada. Conéctate una vez para verla.</p>';
+      }
+    }
+  }
+
+  function mostrarAvisoOffline() {
+    let aviso = document.getElementById('aviso-offline');
+    if (!aviso) {
+      aviso = document.createElement('div');
+      aviso.id = 'aviso-offline';
+      aviso.style.cssText = 'background:#fef3c7;color:#92400e;padding:10px 16px;text-align:center;font-size:14px;font-weight:600';
+      aviso.textContent = '📡 Sin conexión — tu pedido se enviará al reconectar';
+      document.body.insertBefore(aviso, document.body.firstChild);
+    }
+  }
+  function quitarAvisoOffline() {
+    document.getElementById('aviso-offline')?.remove();
+  }
+
+  function renderCarta(lista) {
+    const cont = document.getElementById('carta');
+    if (!lista.length) { cont.innerHTML = '<p style="text-align:center;color:#999;padding:40px">Sin productos.</p>'; return; }
+    const porCat = {};
+    lista.forEach(p => { (porCat[p.categoria] = porCat[p.categoria] || []).push(p); });
+    let html = '';
+    for (const cat in porCat) {
+      html += `<div class="categoria-titulo">${cat}</div>`;
+      porCat[cat].forEach(p => {
+        const cant = carrito[p.id]?.cantidad || 0;
+        html += `
+          <div class="producto">
+            <div class="producto-info">
+              <h3>${p.nombre}</h3>
+              <span class="precio">$${p.precio.toLocaleString('es-CO')}</span>
+            </div>
+            <div class="cantidad-control">
+              <button onclick="cambiar(${p.id},-1)" ${cant===0?'disabled':''}>−</button>
+              <span class="cant" id="cant-${p.id}">${cant}</span>
+              <button onclick="cambiar(${p.id},1)">+</button>
+            </div>
+          </div>`;
+      });
+    }
+    cont.innerHTML = html;
+  }
+
+  function cambiar(id, delta) {
+    const prod = productos.find(p => p.id === id);
+    if (!prod) return;
+    const actual = carrito[id]?.cantidad || 0;
+    const nueva = Math.max(0, actual + delta);
+    if (nueva === 0) delete carrito[id];
+    else carrito[id] = { producto: prod, cantidad: nueva };
+    document.getElementById(`cant-${id}`).textContent = nueva;
+    document.querySelector(`#cant-${id}`).previousElementSibling.disabled = (nueva === 0);
+    actualizarCarrito();
+  }
+
+  function actualizarCarrito() {
+    const items = Object.values(carrito);
+    const total = items.reduce((s, i) => s + i.producto.precio * i.cantidad, 0);
+    const count = items.reduce((s, i) => s + i.cantidad, 0);
+    document.getElementById('carrito').style.display = count > 0 ? 'block' : 'none';
+    document.getElementById('total-carrito').textContent = '$' + total.toLocaleString('es-CO');
+    document.getElementById('items-count').textContent = count;
+  }
+
+  function abrirConfirmacion() { document.getElementById('modal').classList.add('activo'); }
+  function cerrarModal() { document.getElementById('modal').classList.remove('activo'); }
+
+  async function enviarPedido() {
+    const items = Object.values(carrito).map(i => ({ producto_id: i.producto.id, cantidad: i.cantidad }));
+    const payload = { tipo: MESA_ID ? 'mesa' : 'autoservicio', items, mesa_id: MESA_ID };
+    if (!MESA_ID) {
+      const nombre = document.getElementById('nombre-cliente').value.trim();
+      if (!nombre) { alert('Escribe tu nombre'); return; }
+      payload.nombre_cliente = nombre;
+    }
+    try {
+      const r = await fetch('/api/cliente/pedido', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await r.json();
+      if (r.ok) {
+        mostrarExito(data.mensaje, data.pedido_id, data.total);
+      } else {
+        alert(data.detail || 'No se pudo enviar el pedido');
+      }
+    } catch (e) {
+      // Sin conexion: encolar el pedido para enviarlo al reconectar.
+      encolarPedido(payload);
+      mostrarExito('Sin conexión ahora. Tu pedido se enviará automáticamente al reconectar.', null, calcularTotal());
+    }
+  }
+
+  function calcularTotal() {
+    return Object.values(carrito).reduce((s, i) => s + i.producto.precio * i.cantidad, 0);
+  }
+
+  function mostrarExito(mensaje, pedidoId, total) {
+    const ref = pedidoId ? `<p style="font-weight:700">Pedido #${pedidoId} · $${(total||0).toLocaleString('es-CO')}</p>` : '';
+    document.getElementById('modal-contenido').innerHTML =
+      `<div class="exito">✅</div><h2>¡Pedido registrado!</h2><p style="color:#666;margin:12px 0">${mensaje}</p>
+       ${ref}<button class="btn-pedir" style="margin-top:16px" onclick="location.reload()">Hacer otro pedido</button>`;
+  }
+
+  // ---- Cola offline de pedidos ----
+  function encolarPedido(payload) {
+    const cola = JSON.parse(localStorage.getItem('cola_pedidos') || '[]');
+    cola.push({ payload, ts: Date.now() });
+    localStorage.setItem('cola_pedidos', JSON.stringify(cola));
+    mostrarAvisoOffline();
+  }
+
+  async function procesarCola() {
+    const cola = JSON.parse(localStorage.getItem('cola_pedidos') || '[]');
+    if (!cola.length) return;
+    const pendientes = [];
+    for (const item of cola) {
+      try {
+        const r = await fetch('/api/cliente/pedido', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(item.payload)
+        });
+        if (!r.ok) pendientes.push(item);  // reintentar luego
+      } catch (e) {
+        pendientes.push(item);  // sigue sin red
+      }
+    }
+    localStorage.setItem('cola_pedidos', JSON.stringify(pendientes));
+    if (pendientes.length === 0) {
+      quitarAvisoOffline();
+      const n = cola.length;
+      if (n > 0 && document.getElementById('modal').classList.contains('activo') === false) {
+        const t = document.createElement('div');
+        t.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#0f6b4a;color:#fff;padding:12px 20px;border-radius:12px;z-index:200';
+        t.textContent = `✅ ${n} pedido(s) enviado(s) al reconectar`;
+        document.body.appendChild(t);
+        setTimeout(() => t.remove(), 4000);
+      }
+    }
+  }
+
+  // Reintentar la cola cuando vuelve la conexion.
+  window.addEventListener('online', () => { quitarAvisoOffline(); procesarCola(); });
+  window.addEventListener('offline', mostrarAvisoOffline);
+
+  document.getElementById('buscador').addEventListener('input', (e) => {
+    const q = e.target.value.toLowerCase();
+    renderCarta(productos.filter(p => p.nombre.toLowerCase().includes(q)));
+  });
+
+  // Registrar el service worker de la app de cliente (para funcionar offline).
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw-cliente.js', { scope: '/cliente' })
+      .catch(() => {});
+  }
+
+  cargarCarta();
+  // Si hay pedidos en cola de una sesion anterior, intentar enviarlos.
+  procesarCola();
+</script>
+</body>
+</html>
