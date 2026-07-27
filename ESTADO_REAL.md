@@ -1726,3 +1726,63 @@ computo: los tres contenedores ahora miden rgb(238,241,245), cero azul.
 - Separar modulo de meseros (que no mande a la ventana de mesas de la web).
 - Modulos independientes con identidad propia (mesero, cliente, gerencial, web).
 - Motor de reconocimiento facial (fuera de este entorno).
+
+
+---
+
+# Paso 29: Revision de funcionalidad + bugs criticos reportados
+
+El usuario reporto (con capturas) que crear zona daba "Field required: nombre",
+que al dar Salir salia error 405 y no cerraba, y pidio una revision real de la
+funcionalidad (facturacion, zonas, mesas, produccion) y que el cliente pueda
+ASIGNAR la mesa al pedir en mesa.
+
+## Bugs encontrados y corregidos
+
+**1. BUG CRITICO DE CSRF (afectaba TODOS los formularios en produccion).**
+El middleware CSRF, cuando el token no venia en la cabecera X-CSRF-Token (o sea,
+en cualquier formulario HTML normal sin JavaScript), leia el token del cuerpo con
+await request.form(). Eso CONSUMIA el body; cuando la ruta intentaba leer el
+formulario despues, llegaba vacio -> "Field required: nombre, input: null". Por
+eso fallaba crear zona (y en realidad cualquier form). En local no se veia porque
+las pruebas mandaban el header. Se corrigio cacheando el body crudo y
+reponiendolo en request._receive para que la ruta pueda volver a leerlo.
+
+**2. Logout daba 405.** El enlace "Salir" es un <a href="/logout"> (GET) pero la
+ruta solo aceptaba POST. Se hizo que /logout acepte GET y POST.
+
+**3. El cliente no podia elegir la mesa.** Solo se pedia en mesa si se entraba
+con ?mesa=N en la URL. Ahora, si no viene mesa, la app ofrece elegir modo
+(en mesa / para recoger) y, si es en mesa, un selector con las mesas por zona
+(nuevo endpoint publico /api/cliente/mesas).
+
+## Ensayo funcional completo (end-to-end, como navegador real)
+
+- Zonas y mesas: crear zona OK, crear mesa OK, mover mesa (con header) OK.
+- Productos: crear producto OK.
+- Facturacion completa: abrir comanda -> agregar item -> cobrar -> estado
+  "pagada". Total cobrado correctamente.
+- Produccion: vista OK.
+- Pedido de cliente en mesa: cliente elige mesa -> pide -> mesero acepta ->
+  se genera la venta. OK.
+- Logout: GET y POST cierran sesion (303).
+
+## Verificacion
+
+- Todos los flujos probados end-to-end con el escenario real (form sin header,
+  como el navegador; APIs con header como el JS).
+- Suite: 529 aciertos, 0 fallos (521 previos + 8 nuevos de regresion que cubren
+  exactamente los bugs reportados).
+- Sin migracion (correcciones de codigo, plantilla y un endpoint nuevo).
+
+## Nota importante
+
+El arreglo del CSRF es el mas relevante: sin el, en produccion (Render) fallaban
+TODOS los formularios que se envian sin JavaScript. Ahora el sistema es
+realmente operable desde el navegador.
+
+## Lo que sigue
+
+- Separar modulo de meseros (que no mande a la ventana de mesas de la web).
+- Modulos independientes con identidad propia (mesero, cliente, gerencial, web).
+- Motor de reconocimiento facial (fuera de este entorno).

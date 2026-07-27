@@ -522,9 +522,14 @@ def login(request: Request, usuario: str = Form(...), password: str = Form(...),
     db.commit()
     return RedirectResponse("/dashboard", 303)
 
+@app.get("/logout")
 @app.post("/logout")
 def logout(request: Request, db: Session = Depends(get_db)):
-    """Logout con logging de auditoría"""
+    """Logout con logging de auditoría.
+
+    Se acepta GET y POST: el enlace 'Salir' del menu es un <a> (GET), y algunas
+    integraciones cierran sesion por POST. Ambos limpian la sesion.
+    """
     usuario = request.session.get("usuario_nombre", "desconocido")
     logger.info(f"Logout para usuario: {usuario}")
     from .domains.auditoria.services import AuditoriaService

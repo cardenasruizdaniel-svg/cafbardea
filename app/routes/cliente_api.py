@@ -58,6 +58,23 @@ def carta_publica(db: Session = Depends(get_db)):
     return {"productos": items}
 
 
+@router.get("/api/cliente/mesas")
+def mesas_publicas(db: Session = Depends(get_db)):
+    """Mesas que el cliente puede elegir para un pedido en mesa.
+
+    Solo se ofrecen las mesas libres, agrupadas por zona, para que el comensal
+    seleccione la suya si accedio sin un enlace de mesa especifico.
+    """
+    zonas = db.scalars(select(Zona).order_by(Zona.orden)).all()
+    salida = []
+    for z in zonas:
+        mesas = [{"id": m.id, "nombre": m.nombre, "estado": m.estado}
+                 for m in sorted(z.mesas, key=lambda x: x.nombre)]
+        if mesas:
+            salida.append({"zona": z.nombre, "mesas": mesas})
+    return {"zonas": salida}
+
+
 @router.post("/api/cliente/pedido")
 async def crear_pedido_publico(request: Request, db: Session = Depends(get_db)):
     """El cliente crea un pedido (autoservicio o mesa)."""

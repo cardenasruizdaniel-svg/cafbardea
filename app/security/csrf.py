@@ -87,14 +87,30 @@ class CSRFMiddleware(BaseHTTPMiddleware):
         return await call_next(request)
 
     async def _extraer_token(self, request: Request):
-        # Cabecera primero (peticiones AJAX).
+        # Cabecera primero (peticiones AJAX). No consume el body.
         header = request.headers.get("x-csrf-token")
         if header:
             return header
-        # Campo de formulario.
+        # Campo de formulario. IMPORTANTE: leer el body aqui lo consume, y luego
+        # la ruta recibiria un form vacio ("nombre: null"). Para evitarlo,
+        # cacheamos el body crudo y lo reponemos en el canal de recepcion para
+        # que FastAPI pueda volver a leerlo en la ruta.
         ctype = request.headers.get("content-type", "")
         if "application/x-www-form-urlencoded" in ctype or "multipart/form-data" in ctype:
             try:
+                body = await request.body()
+                # Reponer el body para lecturas posteriores (la ruta).
+                async def _receive():
+                    return {"type": "http.request", "body": body,
+                            "more_body": False}
+                request._receive = _receive
+                # Parsear el token del body ya cacheado.
+                from urllib.parse import parse_qs
+                if "application/x-www-form-urlencoded" in ctype:
+                    datos = parse_qs(body.decode("utf-8", "ignore"))
+                    valores = datos.get("csrf_token")
+                    return valores[0] if valores else None
+                # multipart: usar el parser de Starlette (ya con el body repuesto)
                 form = await request.form()
                 return form.get("csrf_token")
             except Exception:

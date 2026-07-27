@@ -89,8 +89,8 @@
   <p>Estás ordenando desde tu mesa</p>
   <span class="modo-badge">🍽️ Mesa {{ mesa_nombre }}</span>
   {% else %}
-  <p>Autoservicio · pide y paga en caja al recoger</p>
-  <span class="modo-badge">🛍️ Para recoger</span>
+  <p>Arma tu pedido y elige cómo recibirlo</p>
+  <span class="modo-badge" id="badge-modo">🛍️ Elige al confirmar</span>
   {% endif %}
 </header>
 
@@ -110,14 +110,27 @@
 
 <div class="modal" id="modal">
   <div class="modal-caja" id="modal-contenido">
-    {% if not mesa_id %}
-    <h2>¿A nombre de quién?</h2>
-    <input type="text" id="nombre-cliente" placeholder="Tu nombre" maxlength="80">
-    {% else %}
+    {% if mesa_id %}
     <h2>Confirmar pedido</h2>
-    <p style="color:#666;font-size:14px">Un mesero confirmará tu pedido.</p>
-    {% endif %}
+    <p style="color:#666;font-size:14px">Un mesero confirmará tu pedido en la mesa {{ mesa_nombre }}.</p>
     <button class="btn-pedir" onclick="enviarPedido()">Enviar pedido</button>
+    {% else %}
+    <h2>¿Cómo quieres tu pedido?</h2>
+    <div style="display:flex;gap:8px;margin:14px 0">
+      <button type="button" id="opt-mesa" class="opt-modo" onclick="elegirModo('mesa')" style="flex:1;padding:14px;border:2px solid var(--borde);border-radius:12px;background:#fff;cursor:pointer;font-weight:600">🍽️ En mesa</button>
+      <button type="button" id="opt-auto" class="opt-modo" onclick="elegirModo('autoservicio')" style="flex:1;padding:14px;border:2px solid var(--borde);border-radius:12px;background:#fff;cursor:pointer;font-weight:600">🛍️ Para recoger</button>
+    </div>
+    <div id="campo-mesa" style="display:none">
+      <label style="font-size:13px;color:#666;text-align:left;display:block;margin-bottom:4px">Elige tu mesa</label>
+      <select id="select-mesa" class="modal-caja-select" style="width:100%;padding:12px;border:1px solid var(--borde);border-radius:12px;margin-bottom:12px">
+        <option value="">Cargando mesas...</option>
+      </select>
+    </div>
+    <div id="campo-nombre" style="display:none">
+      <input type="text" id="nombre-cliente" placeholder="Tu nombre" maxlength="80">
+    </div>
+    <button class="btn-pedir" id="btn-enviar" onclick="enviarPedido()" disabled>Elige una opción</button>
+    {% endif %}
     <button onclick="cerrarModal()" style="background:none;border:none;color:#999;margin-top:12px;cursor:pointer">Cancelar</button>
   </div>
 </div>
@@ -126,6 +139,45 @@
   const MESA_ID = {{ mesa_id or 'null' }};
   const carrito = {};
   let productos = [];
+  let modoElegido = MESA_ID ? 'mesa' : null;  // si viene mesa, el modo es fijo
+  let mesaElegida = MESA_ID || null;
+
+  async function cargarMesas() {
+    try {
+      const r = await fetch('/api/cliente/mesas');
+      const data = await r.json();
+      const sel = document.getElementById('select-mesa');
+      if (!sel) return;
+      let html = '<option value="">Selecciona tu mesa</option>';
+      data.zonas.forEach(z => {
+        html += `<optgroup label="${z.zona}">`;
+        z.mesas.forEach(m => { html += `<option value="${m.id}">${m.nombre}</option>`; });
+        html += '</optgroup>';
+      });
+      sel.innerHTML = html;
+      sel.onchange = () => { mesaElegida = sel.value || null; validarEnvio(); };
+    } catch (e) {}
+  }
+
+  function elegirModo(modo) {
+    modoElegido = modo;
+    document.getElementById('opt-mesa').style.borderColor = modo === 'mesa' ? 'var(--verde)' : 'var(--borde)';
+    document.getElementById('opt-auto').style.borderColor = modo === 'autoservicio' ? 'var(--verde)' : 'var(--borde)';
+    document.getElementById('campo-mesa').style.display = modo === 'mesa' ? 'block' : 'none';
+    document.getElementById('campo-nombre').style.display = modo === 'autoservicio' ? 'block' : 'none';
+    if (modo === 'mesa' && document.getElementById('select-mesa').options.length <= 1) cargarMesas();
+    validarEnvio();
+  }
+
+  function validarEnvio() {
+    const btn = document.getElementById('btn-enviar');
+    if (!btn) return;
+    let ok = false;
+    if (modoElegido === 'mesa') ok = !!mesaElegida;
+    else if (modoElegido === 'autoservicio') ok = true;
+    btn.disabled = !ok;
+    btn.textContent = ok ? 'Enviar pedido' : (modoElegido ? 'Completa los datos' : 'Elige una opción');
+  }
 
   async function cargarCarta() {
     try {
@@ -216,9 +268,13 @@
 
   async function enviarPedido() {
     const items = Object.values(carrito).map(i => ({ producto_id: i.producto.id, cantidad: i.cantidad }));
-    const payload = { tipo: MESA_ID ? 'mesa' : 'autoservicio', items, mesa_id: MESA_ID };
-    if (!MESA_ID) {
-      const nombre = document.getElementById('nombre-cliente').value.trim();
+    const tipo = modoElegido || (MESA_ID ? 'mesa' : 'autoservicio');
+    const mesa = mesaElegida || MESA_ID || null;
+    const payload = { tipo, items, mesa_id: mesa };
+    if (tipo === 'mesa' && !mesa) { alert('Elige tu mesa'); return; }
+    if (tipo === 'autoservicio') {
+      const campo = document.getElementById('nombre-cliente');
+      const nombre = campo ? campo.value.trim() : '';
       if (!nombre) { alert('Escribe tu nombre'); return; }
       payload.nombre_cliente = nombre;
     }

@@ -1,0 +1,93 @@
+"""Revision funcional: bugs reportados por el usuario (zonas, logout, mesa cliente)."""
+import re
+
+import pytest
+
+
+class TestLogout:
+    def test_logout_por_get_funciona(self, client_autenticado):
+        """El boton 'Salir' es un <a> (GET); antes daba 405."""
+        r = client_autenticado.get("/logout", follow_redirects=False)
+        assert r.status_code == 303
+
+    def test_logout_por_post_tambien(self, client_autenticado):
+        r = client_autenticado.post("/logout", follow_redirects=False)
+        assert r.status_code == 303
+
+
+class TestCSRFForm:
+    """El bug de fondo: el CSRF leia el body para el token y lo consumia,
+    dejando el form vacio ('nombre: null'). Se prueba SIN header X-CSRF-Token,
+    como envia un formulario HTML normal."""
+
+    def _token(self, client):
+        r = client.get("/mesas")
+        return re.search(r'name="csrf_token" value="([^"]+)"', r.text).group(1)
+
+    def test_crear_zona_sin_header_csrf(self, client_autenticado, db_session):
+        from app.models import Zona
+        tok = self._token(client_autenticado)
+        # NOTA: sin headers={'X-CSRF-Token': ...}; el token va solo en el form
+        r = client_autenticado.post(
+            "/zonas", data={"nombre": "Zona Form", "csrf_token": tok},
+            follow_redirects=False)
+        assert r.status_code == 303
+        assert db_session.query(Zona).filter_by(nombre="Zona Form").first() is not None
+
+    def test_crear_mesa_sin_header_csrf(self, client_autenticado, db_session):
+        from app.models import Zona, Mesa
+        tok = self._token(client_autenticado)
+        client_autenticado.post("/zonas", data={"nombre": "ZM", "csrf_token": tok})
+        z = db_session.query(Zona).filter_by(nombre="ZM").first()
+        r = client_autenticado.post(
+            "/mesas",
+            data={"zona_id": str(z.id), "nombre": "MFORM", "capacidad": "4",
+                  "forma": "redonda", "csrf_token": tok},
+            follow_redirects=False)
+        assert r.status_code == 303
+        assert db_session.query(Mesa).filter_by(nombre="MFORM").first() is not None
+
+
+class TestClienteEligeMesa:
+    def test_mesas_publicas_disponibles(self, client):
+        r = client.get("/api/cliente/mesas")
+        assert r.status_code == 200
+        assert "zonas" in r.json()
+
+    def test_cliente_elige_mesa_y_pide(self, client, db_session):
+        from app.models import Producto, Mesa
+        mesa = db_session.query(Mesa).first()
+        prod = db_session.query(Producto).filter(Producto.precio_venta > 0).first()
+        r = client.post("/api/cliente/pedido", json={
+            "tipo": "mesa", "mesa_id": mesa.id,
+            "items": [{"producto_id": prod.id, "cantidad": 1}]})
+        assert r.status_code == 200
+        assert r.json()["ok"] is True
+
+    def test_pagina_ofrece_elegir_modo(self, client):
+        r = client.get("/cliente")
+        assert "elegirModo" in r.text
+        assert "select-mesa" in r.text
+
+
+class TestFacturacionCompleta:
+    def test_flujo_venta_completo(self, client_autenticado, db_session):
+        """Comanda -> item -> cobrar -> pagada."""
+        from app.models import Mesa, Producto, Venta
+        mesa = db_session.query(Mesa).first()
+        prod = db_session.query(Producto).filter(Producto.precio_venta > 0).first()
+        tok = re.search(r'name="csrf_token" value="([^"]+)"',
+                        client_autenticado.get("/mesas").text).group(1)
+        H = {"X-CSRF-Token": tok}
+        client_autenticado.get(f"/comanda/{mesa.id}")
+        client_autenticado.post(f"/api/comanda/{mesa.id}/items",
+                                data={"producto_id": str(prod.id), "cantidad": "2"},
+                                headers=H)
+        venta = db_session.query(Venta).filter_by(mesa_id=mesa.id, estado="abierta").first()
+        assert venta is not None
+        r = client_autenticado.post(f"/api/ventas/{venta.id}/pagar",
+                                    data={"medio_pago": "efectivo"}, headers=H,
+                                    follow_redirects=False)
+        assert r.status_code == 200
+        db_session.refresh(venta)
+        assert venta.estado == "pagada"
