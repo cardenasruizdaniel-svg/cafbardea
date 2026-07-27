@@ -14,6 +14,7 @@ from ..websocket_manager import (
 )
 from ..models import Usuario
 from ..models_enterprise import ConexionWebSocket, EventoSincronizacion
+from app.models import hora_colombia
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["websocket"])
@@ -128,7 +129,7 @@ async def websocket_endpoint(websocket: WebSocket, token: str, db: Session = Dep
             ).first()
             if conexion:
                 conexion.conectado = False
-                conexion.fecha_desconexion = datetime.utcnow()
+                conexion.fecha_desconexion = hora_colombia()
                 db.commit()
             
             # Notificar a otros
@@ -229,7 +230,7 @@ async def websocket_status(db: Session = Depends(get_db)):
     stats = connection_manager.get_conexiones_stats()
     return {
         'estado': 'activo',
-        'timestamp': datetime.utcnow(),
+        'timestamp': hora_colombia(),
         **stats
     }
 

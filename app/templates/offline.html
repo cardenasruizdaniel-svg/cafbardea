@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0a0e27">
+  <title>Sin conexión | CafBarDLA</title>
+  <link rel="stylesheet" href="/static/app.css">
+  <style>
+    body {
+      margin: 0; min-height: 100vh; display: flex; align-items: center;
+      justify-content: center; background: #0a0e27; color: #fef3c7;
+      font-family: system-ui, -apple-system, sans-serif; text-align: center;
+      padding: 24px;
+    }
+    .offline-card { max-width: 360px; }
+    .offline-icon { font-size: 64px; margin-bottom: 16px; }
+    h1 { font-size: 22px; margin: 0 0 8px; color: #d4af37; }
+    p { font-size: 15px; line-height: 1.5; opacity: 0.85; }
+    button {
+      margin-top: 20px; padding: 12px 24px; border: none; border-radius: 999px;
+      background: #d4af37; color: #0a0e27; font-weight: 700; font-size: 15px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="offline-card">
+    <div class="offline-icon">📡</div>
+    <h1>Sin conexión</h1>
+    <p>No hay conexión a internet en este momento. Revisa tu red y vuelve a
+       intentarlo. Tus datos están seguros en el servidor.</p>
+    <button onclick="location.reload()">Reintentar</button>
+  </div>
+</body>
+</html>

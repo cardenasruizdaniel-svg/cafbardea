@@ -56,6 +56,26 @@ def validar_empresa(request: Request, db: Session = Depends(get_db)):
     return empresa_id
 
 
+def puede_precio_libre(request: Request) -> bool:
+    """Indica si el usuario puede vender a un precio distinto al del catalogo.
+
+    Se apoya en el permiso RBAC `ventas.precio_libre`. Sin el, el servicio
+    impone el precio del catalogo.
+    """
+    usuario_id = request.session.get("usuario_id")
+    if not usuario_id:
+        return False
+    if request.session.get("rol") == "administrador":
+        return True
+    try:
+        from app.services.rbac_service import RBACService
+        from app.database import SessionLocal
+        with SessionLocal() as db:
+            return RBACService(db).tiene_permiso(usuario_id, "ventas.precio_libre")
+    except Exception:
+        return False
+
+
 # ============================================================================
 # CREAR VENTA
 # ============================================================================
@@ -71,7 +91,8 @@ def crear_venta(
     venta_data: VentaCreate,
     request: Request,
     db: Session = Depends(get_db),
-    empresa_id: int = Depends(validar_empresa)
+    empresa_id: int = Depends(validar_empresa),
+    precio_libre: bool = Depends(puede_precio_libre)
 ):
     """
     **Crear nueva venta**
@@ -95,7 +116,7 @@ def crear_venta(
     try:
         usuario_id = request.session.get("usuario_id")
         service = VentaService(db)
-        venta = service.crear_venta(venta_data, usuario_id, empresa_id)
+        venta = service.crear_venta(venta_data, usuario_id, empresa_id, precio_libre)
         
         logger.info(f"Venta creada - ID: {venta.id}, Total: {venta.total}, Usuario: {usuario_id}")
         return venta
@@ -201,7 +222,8 @@ def agregar_detalle(
     venta_id: int,
     detalle_data: DetalleVentaCreate,
     db: Session = Depends(get_db),
-    empresa_id: int = Depends(validar_empresa)
+    empresa_id: int = Depends(validar_empresa),
+    precio_libre: bool = Depends(puede_precio_libre)
 ):
     """
     Agregar item a venta abierta
@@ -212,7 +234,7 @@ def agregar_detalle(
     """
     try:
         service = VentaService(db)
-        venta = service.agregar_detalle(venta_id, detalle_data, empresa_id)
+        venta = service.agregar_detalle(venta_id, detalle_data, empresa_id, precio_libre)
         logger.info(f"Detalle agregado a venta {venta_id}")
         return venta
     except ValueError as e:
@@ -292,7 +314,7 @@ def procesar_pago(
     """
     try:
         service = VentaService(db)
-        venta = service.procesar_pago(venta_id, pago_data, empresa_id)
+        venta = service.procesar_pago(venta_id, pago_data, empresa_id, request.session.get("usuario_id"))
         
         usuario_id = request.session.get("usuario_id")
         logger.info(

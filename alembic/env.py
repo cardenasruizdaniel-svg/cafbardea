@@ -3,7 +3,13 @@ from alembic import context
 from sqlalchemy import engine_from_config, pool
 from app.config import settings
 from app.database import Base
-from app import models  # noqa: F401; registra todos los modelos
+# Importar TODOS los modulos de modelos para que Base.metadata los registre.
+# Antes solo se importaba `models`, de modo que Alembic no veia las 7 tablas
+# de models_enterprise (sucursales, roles, permisos, usuario_roles,
+# conexiones_websocket, eventos_sincronizacion, rol_permisos) y una
+# autogeneracion las habria marcado para BORRAR.
+from app import models  # noqa: F401
+from app import models_enterprise  # noqa: F401
 
 config = context.config
 config.set_main_option("sqlalchemy.url", settings.database_url)

@@ -21,6 +21,7 @@ from app.database import get_db
 from sqlalchemy.orm import Session
 from sqlalchemy import func, select, and_
 from app.models import (
+    fecha_colombia,
     Venta, DetalleVenta, Producto, Categoria,
     Mesa, Empresa
 )
@@ -141,7 +142,7 @@ def obtener_kpis(db: Session = Depends(get_db)):
     Diseñado para actualizarse cada 30–60 segundos desde el dashboard.
     """
     empresa_id = _empresa_id(db)
-    hoy = date.today()
+    hoy = fecha_colombia()
     ayer = hoy - timedelta(days=1)
     hace_7_dias = hoy - timedelta(days=7)
 
@@ -198,7 +199,7 @@ def ventas_por_hora(
 ):
     """Ventas agrupadas por hora del día — para gráfico de líneas."""
     empresa_id = _empresa_id(db)
-    consulta_dia = dia or date.today()
+    consulta_dia = dia or fecha_colombia()
 
     ventas = db.query(Venta).filter(
         Venta.empresa_id == empresa_id,
@@ -206,8 +207,11 @@ def ventas_por_hora(
         func.date(Venta.fecha) == consulta_dia
     ).all()
 
-    # Agrupar manualmente por hora (compatible SQLite + Postgres)
-    por_hora: dict = {h: {"total": 0.0, "tx": 0} for h in range(7, 24)}
+    # Agrupar por las 24 horas del dia. Antes el rango era 7..23, de modo que
+    # las ventas de madrugada (bar, discoteca, food truck nocturno) no
+    # aparecian en el grafico. Cualquier negocio con operacion nocturna
+    # perdia esas transacciones del reporte.
+    por_hora: dict = {h: {"total": 0.0, "tx": 0} for h in range(24)}
     for v in ventas:
         h = v.fecha.hour
         if h in por_hora:
@@ -237,7 +241,7 @@ def top_productos(
 ):
     """Top N productos por ingresos en el día — para gráfico de barras."""
     empresa_id = _empresa_id(db)
-    consulta_dia = dia or date.today()
+    consulta_dia = dia or fecha_colombia()
 
     rows = (
         db.query(
@@ -279,7 +283,7 @@ def distribucion_categorias(
 ):
     """Distribución de ingresos por categoría — para gráfico de pastel."""
     empresa_id = _empresa_id(db)
-    consulta_dia = dia or date.today()
+    consulta_dia = dia or fecha_colombia()
 
     rows = (
         db.query(

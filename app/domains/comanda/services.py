@@ -9,7 +9,7 @@ from decimal import Decimal
 from sqlalchemy import select, func, and_
 from sqlalchemy.orm import Session
 
-from app.models import Comanda, Venta, DetalleVenta, Mesa
+from app.models import hora_colombia, Comanda, Venta, DetalleVenta, Mesa
 from .schemas import ComandaCreate, ComandaUpdate, CambiarEstadoComanda
 
 logger = logging.getLogger(__name__)
@@ -36,7 +36,7 @@ class ComandaService:
             estado="pendiente",
             prioridad=comanda_data.prioridad,
             notas=comanda_data.notas,
-            fecha_creacion=datetime.utcnow()
+            fecha_creacion=hora_colombia()
         )
         
         self.db.add(comanda)
@@ -89,10 +89,10 @@ class ComandaService:
         
         # Registrar timestamp de entrega si se marca como lista o entregada
         if cambio.estado in ["lista", "entregada"]:
-            comanda.fecha_entrega = datetime.utcnow()
+            comanda.fecha_entrega = hora_colombia()
         
         if cambio.notas:
-            comanda.notas = (comanda.notas or "") + f"\n[{datetime.utcnow().isoformat()}] {cambio.notas}"
+            comanda.notas = (comanda.notas or "") + f"\n[{hora_colombia().isoformat()}] {cambio.notas}"
         
         self.db.commit()
         self.db.refresh(comanda)
@@ -123,7 +123,7 @@ class ComandaService:
 
     def obtener_lista_espera(self) -> List[Dict]:
         """Obtener lista de espera (comandas pendientes con tiempo de espera)"""
-        ahora = datetime.utcnow()
+        ahora = hora_colombia()
         
         comandas = self.db.query(Comanda).filter(
             Comanda.estado.in_(["pendiente", "preparando"])

@@ -18,6 +18,7 @@ from app.models import (
     Producto, Venta, DetalleVenta
 )
 from passlib.context import CryptContext
+from app.models import fecha_colombia
 
 passwords = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -65,6 +66,33 @@ def test_db(TestingSessionLocal):
 @pytest.fixture(scope="function")
 def client(setup_db_override):
     return TestClient(app)
+
+
+@pytest.fixture(scope="function")
+def client_autenticado(client, test_db):
+    """Cliente de pruebas con sesion iniciada.
+
+    Cerrado el bypass de autenticacion del middleware, los endpoints
+    protegidos exigen sesion. Se siembra un usuario y se inicia sesion.
+    """
+    from app.models import Usuario, Empleado
+    from passlib.context import CryptContext
+
+    pwd = CryptContext(schemes=["bcrypt"], deprecated="auto")
+    if not test_db.query(Usuario).filter(Usuario.usuario == "testuser").first():
+        emp = Empleado(nombre="Test Admin", documento="TEST-AUTH-001",
+                       cargo="Administrador", salario=0)
+        test_db.add(emp)
+        test_db.flush()
+        test_db.add(Usuario(empleado_id=emp.id, empresa_id=1, usuario="testuser",
+                            password_hash=pwd.hash("Test123*"), rol="administrador"))
+        test_db.commit()
+
+    resp = client.post("/login",
+                       data={"usuario": "testuser", "password": "Test123*"},
+                       follow_redirects=False)
+    assert resp.status_code == 303, f"login de prueba fallo: {resp.status_code}"
+    return client
 
 
 @pytest.fixture(scope="function")
@@ -149,9 +177,9 @@ def datos_dashboard(test_db):
 class TestKPIEndpoint:
     """Tests para GET /api/v1/dashboard/kpis"""
 
-    def test_kpis_estructura_completa(self, client, setup_db_override):
+    def test_kpis_estructura_completa(self, client_autenticado, setup_db_override):
         """Responde con todos los campos requeridos"""
-        response = client.get("/api/v1/dashboard/kpis")
+        response = client_autenticado.get("/api/v1/dashboard/kpis")
         assert response.status_code == 200
         data = response.json()
 
@@ -164,9 +192,9 @@ class TestKPIEndpoint:
         for campo in campos_requeridos:
             assert campo in data, f"Falta campo: {campo}"
 
-    def test_kpis_comparativa_estructura(self, client, setup_db_override):
+    def test_kpis_comparativa_estructura(self, client_autenticado, setup_db_override):
         """Comparativas tienen los campos correctos"""
-        response = client.get("/api/v1/dashboard/kpis")
+        response = client_autenticado.get("/api/v1/dashboard/kpis")
         assert response.status_code == 200
         data = response.json()
 
@@ -177,36 +205,36 @@ class TestKPIEndpoint:
             assert "tendencia" in data[comp]
             assert data[comp]["tendencia"] in ["sube", "baja", "igual"]
 
-    def test_kpis_sin_ventas(self, client, setup_db_override):
+    def test_kpis_sin_ventas(self, client_autenticado, setup_db_override):
         """Sin ventas, ingresos = 0 y ticket = 0"""
-        response = client.get("/api/v1/dashboard/kpis")
+        response = client_autenticado.get("/api/v1/dashboard/kpis")
         assert response.status_code == 200
         data = response.json()
         assert data["ingresos_hoy"] == 0.0
         assert data["transacciones_hoy"] == 0
         assert data["ticket_promedio_hoy"] == 0.0
 
-    def test_kpis_con_ventas(self, client, datos_dashboard):
+    def test_kpis_con_ventas(self, client_autenticado, datos_dashboard):
         """Con ventas refleja totales correctos"""
-        response = client.get("/api/v1/dashboard/kpis")
+        response = client_autenticado.get("/api/v1/dashboard/kpis")
         assert response.status_code == 200
         data = response.json()
         assert data["ingresos_hoy"] == 8500.0 + 7000.0
         assert data["transacciones_hoy"] == 2
         assert data["ticket_promedio_hoy"] == (8500.0 + 7000.0) / 2
 
-    def test_kpis_mesas_ocupacion(self, client, datos_dashboard):
+    def test_kpis_mesas_ocupacion(self, client_autenticado, datos_dashboard):
         """Ocupa 1 de 3 mesas → 33.3%"""
-        response = client.get("/api/v1/dashboard/kpis")
+        response = client_autenticado.get("/api/v1/dashboard/kpis")
         assert response.status_code == 200
         data = response.json()
         assert data["mesas_totales"] == 3
         assert data["mesas_ocupadas"] == 1
         assert data["ocupacion_pct"] == pytest.approx(33.3, rel=0.01)
 
-    def test_kpis_alertas_stock(self, client, datos_dashboard):
+    def test_kpis_alertas_stock(self, client_autenticado, datos_dashboard):
         """Producto con stock bajo aparece en alertas"""
-        response = client.get("/api/v1/dashboard/kpis")
+        response = client_autenticado.get("/api/v1/dashboard/kpis")
         assert response.status_code == 200
         data = response.json()
         assert data["alertas_stock"] >= 1  # prod1 tiene existencias < mínimo
@@ -219,17 +247,18 @@ class TestKPIEndpoint:
 class TestVentasPorHora:
     """Tests para GET /api/v1/dashboard/ventas-por-hora"""
 
-    def test_estructura_respuesta(self, client, setup_db_override):
-        """Retorna lista con horas de 07:00 a 23:00"""
-        response = client.get("/api/v1/dashboard/ventas-por-hora")
+    def test_estructura_respuesta(self, client_autenticado, setup_db_override):
+        """Retorna lista con las 24 horas del dia"""
+        response = client_autenticado.get("/api/v1/dashboard/ventas-por-hora")
         assert response.status_code == 200
         data = response.json()
         assert isinstance(data, list)
-        assert len(data) == 17  # horas 7–23
+        # 24 horas: el rango 7-23 dejaba fuera las ventas de madrugada
+        assert len(data) == 24
 
-    def test_campos_por_hora(self, client, setup_db_override):
+    def test_campos_por_hora(self, client_autenticado, setup_db_override):
         """Cada entrada tiene hora, label, total y transacciones"""
-        response = client.get("/api/v1/dashboard/ventas-por-hora")
+        response = client_autenticado.get("/api/v1/dashboard/ventas-por-hora")
         assert response.status_code == 200
         for item in response.json():
             assert "hora" in item
@@ -237,25 +266,25 @@ class TestVentasPorHora:
             assert "total" in item
             assert "transacciones" in item
 
-    def test_formato_label(self, client, setup_db_override):
+    def test_formato_label(self, client_autenticado, setup_db_override):
         """Labels tienen formato HH:00"""
-        response = client.get("/api/v1/dashboard/ventas-por-hora")
+        response = client_autenticado.get("/api/v1/dashboard/ventas-por-hora")
         for item in response.json():
             assert item["label"].endswith(":00")
             assert len(item["label"]) == 5
 
-    def test_ventas_por_hora_con_datos(self, client, datos_dashboard):
+    def test_ventas_por_hora_con_datos(self, client_autenticado, datos_dashboard):
         """La hora de creación de ventas tiene total > 0"""
-        response = client.get("/api/v1/dashboard/ventas-por-hora")
+        response = client_autenticado.get("/api/v1/dashboard/ventas-por-hora")
         assert response.status_code == 200
         data = response.json()
         total_dia = sum(h["total"] for h in data)
         assert total_dia == pytest.approx(8500.0 + 7000.0)
 
-    def test_filtro_dia(self, client, datos_dashboard):
+    def test_filtro_dia(self, client_autenticado, datos_dashboard):
         """Parámetro dia filtra por fecha"""
-        ayer = (date.today() - timedelta(days=1)).isoformat()
-        response = client.get(f"/api/v1/dashboard/ventas-por-hora?dia={ayer}")
+        ayer = (fecha_colombia() - timedelta(days=1)).isoformat()
+        response = client_autenticado.get(f"/api/v1/dashboard/ventas-por-hora?dia={ayer}")
         assert response.status_code == 200
         data = response.json()
         total_ayer = sum(h["total"] for h in data)
@@ -269,30 +298,30 @@ class TestVentasPorHora:
 class TestTopProductos:
     """Tests para GET /api/v1/dashboard/top-productos"""
 
-    def test_sin_ventas_lista_vacia(self, client, setup_db_override):
+    def test_sin_ventas_lista_vacia(self, client_autenticado, setup_db_override):
         """Sin ventas retorna lista vacía"""
-        response = client.get("/api/v1/dashboard/top-productos")
+        response = client_autenticado.get("/api/v1/dashboard/top-productos")
         assert response.status_code == 200
         assert response.json() == []
 
-    def test_con_ventas_retorna_productos(self, client, datos_dashboard):
+    def test_con_ventas_retorna_productos(self, client_autenticado, datos_dashboard):
         """Con ventas retorna productos ordenados por ingresos"""
-        response = client.get("/api/v1/dashboard/top-productos")
+        response = client_autenticado.get("/api/v1/dashboard/top-productos")
         assert response.status_code == 200
         data = response.json()
         assert len(data) >= 1
         assert data[0]["nombre"] == "Capuchino"  # 8500 > 7000
         assert data[0]["ingresos"] == 8500.0
 
-    def test_limite_funciona(self, client, datos_dashboard):
+    def test_limite_funciona(self, client_autenticado, datos_dashboard):
         """Parámetro limite respetado"""
-        response = client.get("/api/v1/dashboard/top-productos?limite=1")
+        response = client_autenticado.get("/api/v1/dashboard/top-productos?limite=1")
         assert response.status_code == 200
         assert len(response.json()) <= 1
 
-    def test_campos_requeridos(self, client, datos_dashboard):
+    def test_campos_requeridos(self, client_autenticado, datos_dashboard):
         """Cada entrada tiene nombre, cantidad e ingresos"""
-        response = client.get("/api/v1/dashboard/top-productos")
+        response = client_autenticado.get("/api/v1/dashboard/top-productos")
         for item in response.json():
             assert "nombre" in item
             assert "cantidad" in item
@@ -306,15 +335,15 @@ class TestTopProductos:
 class TestCategorias:
     """Tests para GET /api/v1/dashboard/categorias"""
 
-    def test_sin_ventas_lista_vacia(self, client, setup_db_override):
+    def test_sin_ventas_lista_vacia(self, client_autenticado, setup_db_override):
         """Sin ventas retorna lista vacía"""
-        response = client.get("/api/v1/dashboard/categorias")
+        response = client_autenticado.get("/api/v1/dashboard/categorias")
         assert response.status_code == 200
         assert response.json() == []
 
-    def test_con_ventas_retorna_categorias(self, client, datos_dashboard):
+    def test_con_ventas_retorna_categorias(self, client_autenticado, datos_dashboard):
         """Con ventas retorna categorías con porcentajes"""
-        response = client.get("/api/v1/dashboard/categorias")
+        response = client_autenticado.get("/api/v1/dashboard/categorias")
         assert response.status_code == 200
         data = response.json()
         assert len(data) >= 1
@@ -322,9 +351,9 @@ class TestCategorias:
         total_pct = sum(c["porcentaje"] for c in data)
         assert total_pct == pytest.approx(100.0, rel=0.01)
 
-    def test_campos_requeridos(self, client, datos_dashboard):
+    def test_campos_requeridos(self, client_autenticado, datos_dashboard):
         """Cada entrada tiene categoria, ingresos y porcentaje"""
-        response = client.get("/api/v1/dashboard/categorias")
+        response = client_autenticado.get("/api/v1/dashboard/categorias")
         for item in response.json():
             assert "categoria" in item
             assert "ingresos" in item
@@ -339,9 +368,9 @@ class TestCategorias:
 class TestEstadoMesas:
     """Tests para GET /api/v1/dashboard/mesas"""
 
-    def test_sin_mesas_ceros(self, client, setup_db_override):
+    def test_sin_mesas_ceros(self, client_autenticado, setup_db_override):
         """Sin mesas, todos los contadores en 0"""
-        response = client.get("/api/v1/dashboard/mesas")
+        response = client_autenticado.get("/api/v1/dashboard/mesas")
         assert response.status_code == 200
         data = response.json()
         assert data["totales"] == 0
@@ -349,9 +378,9 @@ class TestEstadoMesas:
         assert data["libres"] == 0
         assert data["ocupacion_pct"] == 0.0
 
-    def test_con_mesas_cuenta_correcta(self, client, datos_dashboard):
+    def test_con_mesas_cuenta_correcta(self, client_autenticado, datos_dashboard):
         """1 ocupada de 3 → totales correctos"""
-        response = client.get("/api/v1/dashboard/mesas")
+        response = client_autenticado.get("/api/v1/dashboard/mesas")
         assert response.status_code == 200
         data = response.json()
         assert data["totales"] == 3
@@ -359,9 +388,9 @@ class TestEstadoMesas:
         assert data["libres"] == 2
         assert data["ocupacion_pct"] == pytest.approx(33.3, rel=0.01)
 
-    def test_campos_requeridos(self, client, setup_db_override):
+    def test_campos_requeridos(self, client_autenticado, setup_db_override):
         """Respuesta incluye todos los campos"""
-        response = client.get("/api/v1/dashboard/mesas")
+        response = client_autenticado.get("/api/v1/dashboard/mesas")
         assert response.status_code == 200
         data = response.json()
         for campo in ["libres", "ocupadas", "reservadas", "totales", "ocupacion_pct"]:

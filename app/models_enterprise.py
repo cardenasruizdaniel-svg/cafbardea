@@ -7,6 +7,7 @@ from typing import Optional
 from sqlalchemy import String, Integer, DateTime, ForeignKey, Boolean, JSON, Table, Column
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .database import Base
+from .models import hora_colombia
 import uuid
 
 # ============================================================================
@@ -54,7 +55,7 @@ class Sucursal(Base):
     
     # Estados y metadata
     activa: Mapped[bool] = mapped_column(Boolean, default=True)
-    fecha_apertura: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    fecha_apertura: Mapped[datetime] = mapped_column(DateTime, default=hora_colombia)
     fecha_cierre: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     
     # Configuración KDS/Impresoras
@@ -62,7 +63,7 @@ class Sucursal(Base):
     
     # Audit
     creado_por: Mapped[Optional[int]] = mapped_column(ForeignKey("usuarios.id"))
-    actualizado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    actualizado_en: Mapped[datetime] = mapped_column(DateTime, default=hora_colombia, onupdate=hora_colombia)
 
     # Relaciones
     conexiones_activas: Mapped[list["ConexionWebSocket"]] = relationship(back_populates="sucursal")
@@ -156,7 +157,7 @@ class UsuarioRol(Base):
     
     # Validez temporal
     activo: Mapped[bool] = mapped_column(Boolean, default=True)
-    fecha_asignacion: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    fecha_asignacion: Mapped[datetime] = mapped_column(DateTime, default=hora_colombia)
     fecha_expiracion: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     
     # Relaciones
@@ -194,8 +195,8 @@ class ConexionWebSocket(Base):
     
     # Estados
     conectado: Mapped[bool] = mapped_column(Boolean, default=True)
-    fecha_conexion: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-    fecha_ultima_actividad: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    fecha_conexion: Mapped[datetime] = mapped_column(DateTime, default=hora_colombia)
+    fecha_ultima_actividad: Mapped[datetime] = mapped_column(DateTime, default=hora_colombia)
     fecha_desconexion: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     
     # Relaciones
@@ -236,6 +237,6 @@ class EventoSincronizacion(Base):
     sucursal_id: Mapped[int] = mapped_column(ForeignKey("sucursales.id"))
     
     # Sincronización
-    fecha_evento: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+    fecha_evento: Mapped[datetime] = mapped_column(DateTime, default=hora_colombia, index=True)
     sincronizado: Mapped[bool] = mapped_column(Boolean, default=False)
     dispositivos_notificados: Mapped[Optional[list]] = mapped_column(JSON, nullable=True)

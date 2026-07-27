@@ -10,8 +10,13 @@ from enum import Enum
 
 
 class EstadoMesa(str, Enum):
-    """Estados posibles de una mesa"""
-    DISPONIBLE = "disponible"
+    """Estados posibles de una mesa.
+
+    El valor es "libre", no "disponible": el resto del sistema (modelo,
+    seed y dominio de ventas) siempre uso "libre", de modo que este enum
+    hacia fallar la serializacion de cualquier mesa real.
+    """
+    LIBRE = "libre"
     OCUPADA = "ocupada"
     RESERVADA = "reservada"
     LIMPIEZA = "limpieza"
@@ -93,7 +98,7 @@ class MesaResponse(BaseModel):
                 "posicion_x": 10,
                 "posicion_y": 15,
                 "forma": "redonda",
-                "estado": "disponible",
+                "estado": "libre",
                 "venta_activa": None,
                 "numero_personas": None
             }
@@ -157,7 +162,7 @@ class EstadisticasMesa(BaseModel):
             "reservadas": 0,
             "ocupacion_promedio": 30,
             "mesas_por_estado": {
-                "disponible": 7,
+                "libre": 7,
                 "ocupada": 3,
                 "reservada": 0,
                 "limpieza": 0,

@@ -15,7 +15,7 @@ class TestEstadoMesaEnum:
     
     def test_estados_validos(self):
         """Verificar todos los estados válidos"""
-        assert EstadoMesa.DISPONIBLE.value == "disponible"
+        assert EstadoMesa.LIBRE.value == "libre"
         assert EstadoMesa.OCUPADA.value == "ocupada"
         assert EstadoMesa.RESERVADA.value == "reservada"
         assert EstadoMesa.LIMPIEZA.value == "limpieza"
@@ -23,8 +23,8 @@ class TestEstadoMesaEnum:
     
     def test_crear_desde_string(self):
         """Poder crear enum desde string"""
-        estado = EstadoMesa("disponible")
-        assert estado == EstadoMesa.DISPONIBLE
+        estado = EstadoMesa("libre")
+        assert estado == EstadoMesa.LIBRE
 
 
 class TestFormaMesaEnum:
@@ -194,11 +194,11 @@ class TestMesaResponse:
             posicion_x=10,
             posicion_y=15,
             forma="redonda",
-            estado="disponible"
+            estado="libre"
         )
         assert response.id == 1
         assert response.nombre == "M1"
-        assert response.estado == "disponible"
+        assert response.estado == "libre"
     
     def test_from_attributes_config(self):
         """Verificar que puede crearse desde atributos de modelo"""

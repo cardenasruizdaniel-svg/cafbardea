@@ -1,0 +1,38 @@
+{% extends "base.html" %}{% block content %}
+<header>
+  <div>
+    <p class="eyebrow">TRAZABILIDAD DE EXISTENCIAS</p>
+    <h1>Kardex · {{ producto.nombre }}</h1>
+    <p class="muted">{{ producto.codigo }} · Saldo actual: <strong>{{ producto.existencias }}</strong>
+       · Costo promedio: <strong>${{ '{:,.2f}'.format(producto.costo) }}</strong></p>
+  </div>
+  <div><a class="btn" href="/inventario">Volver a inventario</a></div>
+</header>
+
+<section class="panel">
+  {% if movimientos %}
+  <table>
+    <tr>
+      <th>Fecha</th><th>Tipo</th><th>Referencia</th>
+      <th class="num">Entrada</th><th class="num">Salida</th><th class="num">Saldo</th>
+      <th class="num">Costo unit.</th><th class="num">Costo prom.</th><th class="num">Valor saldo</th>
+    </tr>
+    {% for m in movimientos %}
+    <tr>
+      <td>{{ m.fecha.strftime('%Y-%m-%d %H:%M') }}</td>
+      <td>{{ m.tipo }}</td>
+      <td>{{ m.referencia or '—' }}</td>
+      <td class="num">{% if m.entrada %}{{ m.entrada }}{% endif %}</td>
+      <td class="num">{% if m.salida %}{{ m.salida }}{% endif %}</td>
+      <td class="num {% if m.saldo < 0 %}warning{% endif %}"><strong>{{ m.saldo }}</strong></td>
+      <td class="num">${{ '{:,.2f}'.format(m.costo_unitario or 0) }}</td>
+      <td class="num">${{ '{:,.2f}'.format(m.costo_promedio or 0) }}</td>
+      <td class="num">${{ '{:,.2f}'.format(m.valor_saldo or 0) }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}
+  <p class="muted">Este producto aún no registra movimientos.</p>
+  {% endif %}
+</section>
+{% endblock %}

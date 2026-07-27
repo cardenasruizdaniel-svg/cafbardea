@@ -1,0 +1,35 @@
+# Configuracion de Caddy para servir CafBarDLA con HTTPS automatico.
+#
+# Caddy obtiene y renueva el certificado TLS solo (Let's Encrypt), sin
+# configuracion adicional. Es la opcion mas simple para produccion.
+#
+# Requisitos:
+#   1. Un dominio apuntando al servidor (ej: pos.tunegocio.com).
+#   2. Puertos 80 y 443 abiertos.
+#   3. CafBarDLA corriendo en el puerto 8000 (uvicorn).
+#
+# Uso:
+#   caddy run --config Caddyfile
+#
+# Reemplaza pos.tunegocio.com por tu dominio real.
+
+pos.tunegocio.com {
+    # Proxy inverso hacia la app.
+    reverse_proxy 127.0.0.1:8000 {
+        # Pasar la IP real del cliente (para rate limit y auditoria).
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+    }
+
+    # Compresion.
+    encode gzip zstd
+
+    # Caddy ya agrega HSTS y headers seguros bajo HTTPS; la app tambien
+    # los envia. No hay conflicto (se usa el primero que se establezca).
+
+    # Log de acceso.
+    log {
+        output file /var/log/caddy/cafbardla.log
+        format json
+    }
+}

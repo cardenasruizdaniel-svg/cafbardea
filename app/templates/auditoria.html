@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="panel">
+  <h1>Auditoría</h1>
+  <p class="muted">Registro de acciones del sistema: accesos, cambios y accesos
+     denegados. Este registro no se puede editar ni borrar.</p>
+
+  <form method="get" action="/auditoria" style="margin:16px 0;display:flex;gap:10px;flex-wrap:wrap">
+    <select name="accion">
+      <option value="">Todas las acciones</option>
+      {% for a in ["acceso","acceso_denegado","crear","editar","anular","eliminar","otro"] %}
+      <option value="{{a}}" {% if filtro_accion==a %}selected{% endif %}>{{a}}</option>
+      {% endfor %}
+    </select>
+    <input type="text" name="modulo" placeholder="Módulo" value="{{ filtro_modulo }}">
+    <button type="submit">Filtrar</button>
+  </form>
+
+  <table>
+    <tr>
+      <th>Fecha/Hora</th><th>Usuario</th><th>Rol</th><th>IP</th>
+      <th>Acción</th><th>Módulo</th><th>Detalle</th><th>Resultado</th>
+    </tr>
+    {% for r in registros %}
+    <tr>
+      <td>{{ r.fecha_hora.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+      <td>{{ r.usuario_nombre or '—' }}</td>
+      <td>{{ r.rol or '—' }}</td>
+      <td>{{ r.ip or '—' }}</td>
+      <td><span class="badge">{{ r.accion }}</span></td>
+      <td>{{ r.modulo or '—' }}</td>
+      <td>{{ r.descripcion or '—' }}
+        {% if r.entidad %}<br><span class="muted">{{ r.entidad }} #{{ r.entidad_id }}</span>{% endif %}
+      </td>
+      <td>{% if r.resultado=='error' %}<span style="color:#f87171">✗</span>{% else %}<span style="color:#4ade80">✓</span>{% endif %}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% if not registros %}<p class="muted">Sin registros todavía.</p>{% endif %}
+</section>
+{% endblock %}

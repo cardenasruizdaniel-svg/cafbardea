@@ -18,6 +18,7 @@ from app.models import (
     Producto, Venta, DetalleVenta
 )
 from passlib.context import CryptContext
+from app.models import fecha_colombia
 
 passwords = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -66,6 +67,33 @@ def test_db(TestingSessionLocal):
 @pytest.fixture(scope="function")
 def client(setup_db_override):
     return TestClient(app)
+
+
+@pytest.fixture(scope="function")
+def client_autenticado(client, test_db):
+    """Cliente de pruebas con sesion iniciada.
+
+    Cerrado el bypass de autenticacion del middleware, los endpoints
+    protegidos exigen sesion. Se siembra un usuario y se inicia sesion.
+    """
+    from app.models import Usuario, Empleado
+    from passlib.context import CryptContext
+
+    pwd = CryptContext(schemes=["bcrypt"], deprecated="auto")
+    if not test_db.query(Usuario).filter(Usuario.usuario == "testuser").first():
+        emp = Empleado(nombre="Test Admin", documento="TEST-AUTH-001",
+                       cargo="Administrador", salario=0)
+        test_db.add(emp)
+        test_db.flush()
+        test_db.add(Usuario(empleado_id=emp.id, empresa_id=1, usuario="testuser",
+                            password_hash=pwd.hash("Test123*"), rol="administrador"))
+        test_db.commit()
+
+    resp = client.post("/login",
+                       data={"usuario": "testuser", "password": "Test123*"},
+                       follow_redirects=False)
+    assert resp.status_code == 303, f"login de prueba fallo: {resp.status_code}"
+    return client
 
 
 @pytest.fixture(scope="function")
@@ -161,9 +189,9 @@ def datos_base(test_db):
 class TestReporteVentas:
     """Tests para GET /api/v1/reportes/ventas"""
 
-    def test_reporte_ventas_vacio(self, client, setup_db_override):
+    def test_reporte_ventas_vacio(self, client_autenticado, setup_db_override):
         """Sin datos retorna estructura vacía con totales cero"""
-        response = client.get("/api/v1/reportes/ventas")
+        response = client_autenticado.get("/api/v1/reportes/ventas")
         assert response.status_code == 200
         data = response.json()
         assert data["total_ventas"] == 0.0
@@ -172,38 +200,38 @@ class TestReporteVentas:
         assert isinstance(data["ventas_por_dia"], list)
         assert isinstance(data["ventas_por_medio_pago"], list)
 
-    def test_reporte_ventas_con_datos(self, client, datos_base):
+    def test_reporte_ventas_con_datos(self, client_autenticado, datos_base):
         """Con una venta retorna el total correcto"""
-        hoy = date.today().isoformat()
-        response = client.get(f"/api/v1/reportes/ventas?desde={hoy}&hasta={hoy}")
+        hoy = fecha_colombia().isoformat()
+        response = client_autenticado.get(f"/api/v1/reportes/ventas?desde={hoy}&hasta={hoy}")
         assert response.status_code == 200
         data = response.json()
         assert data["total_ventas"] == 9680.0
         assert data["cantidad_transacciones"] == 1
         assert data["ticket_promedio"] == 9680.0
 
-    def test_reporte_ventas_periodo(self, client, datos_base):
+    def test_reporte_ventas_periodo(self, client_autenticado, datos_base):
         """Filtro por período funciona"""
-        hace_30 = (date.today() - timedelta(days=30)).isoformat()
-        hoy = date.today().isoformat()
-        response = client.get(f"/api/v1/reportes/ventas?desde={hace_30}&hasta={hoy}")
+        hace_30 = (fecha_colombia() - timedelta(days=30)).isoformat()
+        hoy = fecha_colombia().isoformat()
+        response = client_autenticado.get(f"/api/v1/reportes/ventas?desde={hace_30}&hasta={hoy}")
         assert response.status_code == 200
         data = response.json()
         assert data["total_ventas"] >= 0
 
-    def test_reporte_ventas_medio_pago(self, client, datos_base):
+    def test_reporte_ventas_medio_pago(self, client_autenticado, datos_base):
         """Incluye desglose por medio de pago"""
-        hoy = date.today().isoformat()
-        response = client.get(f"/api/v1/reportes/ventas?desde={hoy}&hasta={hoy}")
+        hoy = fecha_colombia().isoformat()
+        response = client_autenticado.get(f"/api/v1/reportes/ventas?desde={hoy}&hasta={hoy}")
         assert response.status_code == 200
         data = response.json()
         medios = {m["medio"]: m["total"] for m in data["ventas_por_medio_pago"]}
         assert "efectivo" in medios
         assert medios["efectivo"] == 9680.0
 
-    def test_reporte_ventas_defaults(self, client, datos_base):
+    def test_reporte_ventas_defaults(self, client_autenticado, datos_base):
         """Sin parámetros usa últimos 30 días"""
-        response = client.get("/api/v1/reportes/ventas")
+        response = client_autenticado.get("/api/v1/reportes/ventas")
         assert response.status_code == 200
         data = response.json()
         assert "periodo_desde" in data
@@ -217,16 +245,16 @@ class TestReporteVentas:
 class TestReporteProductos:
     """Tests para GET /api/v1/reportes/productos"""
 
-    def test_reporte_productos_vacio(self, client, setup_db_override):
+    def test_reporte_productos_vacio(self, client_autenticado, setup_db_override):
         """Sin ventas retorna lista vacía"""
-        response = client.get("/api/v1/reportes/productos")
+        response = client_autenticado.get("/api/v1/reportes/productos")
         assert response.status_code == 200
         assert response.json() == []
 
-    def test_reporte_productos_con_ventas(self, client, datos_base):
+    def test_reporte_productos_con_ventas(self, client_autenticado, datos_base):
         """Con venta retorna producto con métricas"""
-        hoy = date.today().isoformat()
-        response = client.get(f"/api/v1/reportes/productos?desde={hoy}&hasta={hoy}")
+        hoy = fecha_colombia().isoformat()
+        response = client_autenticado.get(f"/api/v1/reportes/productos?desde={hoy}&hasta={hoy}")
         assert response.status_code == 200
         data = response.json()
         assert len(data) == 1
@@ -237,15 +265,15 @@ class TestReporteProductos:
         assert prod["margen_bruto"] == 6000.0
         assert prod["margen_porcentaje"] == pytest.approx(70.59, rel=0.01)
 
-    def test_reporte_productos_limite(self, client, datos_base):
+    def test_reporte_productos_limite(self, client_autenticado, datos_base):
         """Parámetro limite funciona"""
-        response = client.get("/api/v1/reportes/productos?limite=5")
+        response = client_autenticado.get("/api/v1/reportes/productos?limite=5")
         assert response.status_code == 200
         assert len(response.json()) <= 5
 
-    def test_reporte_productos_limite_invalido(self, client, setup_db_override):
+    def test_reporte_productos_limite_invalido(self, client_autenticado, setup_db_override):
         """Limite inválido devuelve error 422"""
-        response = client.get("/api/v1/reportes/productos?limite=0")
+        response = client_autenticado.get("/api/v1/reportes/productos?limite=0")
         assert response.status_code == 422
 
 
@@ -256,16 +284,16 @@ class TestReporteProductos:
 class TestReporteMeseros:
     """Tests para GET /api/v1/reportes/meseros"""
 
-    def test_reporte_meseros_vacio(self, client, setup_db_override):
+    def test_reporte_meseros_vacio(self, client_autenticado, setup_db_override):
         """Sin ventas retorna lista vacía"""
-        response = client.get("/api/v1/reportes/meseros")
+        response = client_autenticado.get("/api/v1/reportes/meseros")
         assert response.status_code == 200
         assert response.json() == []
 
-    def test_reporte_meseros_con_ventas(self, client, datos_base):
+    def test_reporte_meseros_con_ventas(self, client_autenticado, datos_base):
         """Con ventas retorna estadísticas del mesero"""
-        hoy = date.today().isoformat()
-        response = client.get(f"/api/v1/reportes/meseros?desde={hoy}&hasta={hoy}")
+        hoy = fecha_colombia().isoformat()
+        response = client_autenticado.get(f"/api/v1/reportes/meseros?desde={hoy}&hasta={hoy}")
         assert response.status_code == 200
         data = response.json()
         assert len(data) == 1
@@ -283,9 +311,9 @@ class TestReporteMeseros:
 class TestReporteRentabilidad:
     """Tests para GET /api/v1/reportes/rentabilidad"""
 
-    def test_rentabilidad_vacia(self, client, setup_db_override):
+    def test_rentabilidad_vacia(self, client_autenticado, setup_db_override):
         """Sin ventas todos los valores son 0"""
-        response = client.get("/api/v1/reportes/rentabilidad")
+        response = client_autenticado.get("/api/v1/reportes/rentabilidad")
         assert response.status_code == 200
         data = response.json()
         assert data["ingresos_totales"] == 0.0
@@ -293,10 +321,10 @@ class TestReporteRentabilidad:
         assert data["margen_bruto"] == 0.0
         assert data["margen_bruto_pct"] == 0.0
 
-    def test_rentabilidad_con_ventas(self, client, datos_base):
+    def test_rentabilidad_con_ventas(self, client_autenticado, datos_base):
         """Calcula margen bruto correctamente"""
-        hoy = date.today().isoformat()
-        response = client.get(f"/api/v1/reportes/rentabilidad?desde={hoy}&hasta={hoy}")
+        hoy = fecha_colombia().isoformat()
+        response = client_autenticado.get(f"/api/v1/reportes/rentabilidad?desde={hoy}&hasta={hoy}")
         assert response.status_code == 200
         data = response.json()
         assert data["ingresos_totales"] == 9680.0
@@ -304,10 +332,10 @@ class TestReporteRentabilidad:
         assert data["margen_bruto"] == 7180.0
         assert data["margen_bruto_pct"] > 0
 
-    def test_rentabilidad_incluye_descuentos_propinas(self, client, datos_base):
+    def test_rentabilidad_incluye_descuentos_propinas(self, client_autenticado, datos_base):
         """El resultado neto incluye descuentos y propinas"""
-        hoy = date.today().isoformat()
-        response = client.get(f"/api/v1/reportes/rentabilidad?desde={hoy}&hasta={hoy}")
+        hoy = fecha_colombia().isoformat()
+        response = client_autenticado.get(f"/api/v1/reportes/rentabilidad?desde={hoy}&hasta={hoy}")
         assert response.status_code == 200
         data = response.json()
         assert data["descuentos"] == 0.0
@@ -322,15 +350,15 @@ class TestReporteRentabilidad:
 class TestReporteInventario:
     """Tests para GET /api/v1/reportes/inventario"""
 
-    def test_inventario_vacio(self, client, setup_db_override):
+    def test_inventario_vacio(self, client_autenticado, setup_db_override):
         """Sin productos retorna lista vacía"""
-        response = client.get("/api/v1/reportes/inventario")
+        response = client_autenticado.get("/api/v1/reportes/inventario")
         assert response.status_code == 200
         assert response.json() == []
 
-    def test_inventario_con_productos(self, client, datos_base):
+    def test_inventario_con_productos(self, client_autenticado, datos_base):
         """Con producto retorna análisis correcto"""
-        response = client.get("/api/v1/reportes/inventario")
+        response = client_autenticado.get("/api/v1/reportes/inventario")
         assert response.status_code == 200
         data = response.json()
         assert len(data) == 1
@@ -341,21 +369,21 @@ class TestReporteInventario:
         assert item["categoria_abc"] in ["A", "B", "C"]
         assert item["valor_inventario"] == 50.0 * 2500.0
 
-    def test_inventario_solo_bajos(self, client, test_db, datos_base):
+    def test_inventario_solo_bajos(self, client_autenticado, test_db, datos_base):
         """Filtro solo_bajos excluye productos con stock ok"""
-        response = client.get("/api/v1/reportes/inventario?solo_bajos=true")
+        response = client_autenticado.get("/api/v1/reportes/inventario?solo_bajos=true")
         assert response.status_code == 200
         # El producto tiene 50 existencias y mínimo 10 → estado ok → no aparece
         assert response.json() == []
 
-    def test_inventario_stock_bajo(self, client, test_db, datos_base):
+    def test_inventario_stock_bajo(self, client_autenticado, test_db, datos_base):
         """Producto con stock bajo aparece en filtro"""
         # Bajar existencias por debajo del mínimo
         prod = datos_base["producto"]
         prod.existencias = Decimal("5")  # minimo es 10
         test_db.commit()
 
-        response = client.get("/api/v1/reportes/inventario?solo_bajos=true")
+        response = client_autenticado.get("/api/v1/reportes/inventario?solo_bajos=true")
         assert response.status_code == 200
         data = response.json()
         assert len(data) == 1
@@ -369,37 +397,37 @@ class TestReporteInventario:
 class TestExportarReporte:
     """Tests para GET /api/v1/reportes/exportar"""
 
-    def test_exportar_ventas(self, client, datos_base):
+    def test_exportar_ventas(self, client_autenticado, datos_base):
         """Exporta ventas a Excel"""
-        response = client.get("/api/v1/reportes/exportar?tipo=ventas")
+        response = client_autenticado.get("/api/v1/reportes/exportar?tipo=ventas")
         assert response.status_code == 200
         assert "spreadsheetml" in response.headers["content-type"]
         assert response.headers["content-disposition"].startswith('attachment; filename="reporte_ventas_')
 
-    def test_exportar_productos(self, client, datos_base):
+    def test_exportar_productos(self, client_autenticado, datos_base):
         """Exporta productos a Excel"""
-        response = client.get("/api/v1/reportes/exportar?tipo=productos")
+        response = client_autenticado.get("/api/v1/reportes/exportar?tipo=productos")
         assert response.status_code == 200
         assert "spreadsheetml" in response.headers["content-type"]
 
-    def test_exportar_inventario(self, client, datos_base):
+    def test_exportar_inventario(self, client_autenticado, datos_base):
         """Exporta inventario a Excel"""
-        response = client.get("/api/v1/reportes/exportar?tipo=inventario")
+        response = client_autenticado.get("/api/v1/reportes/exportar?tipo=inventario")
         assert response.status_code == 200
         assert "spreadsheetml" in response.headers["content-type"]
 
-    def test_exportar_meseros(self, client, datos_base):
+    def test_exportar_meseros(self, client_autenticado, datos_base):
         """Exporta meseros a Excel"""
-        response = client.get("/api/v1/reportes/exportar?tipo=meseros")
+        response = client_autenticado.get("/api/v1/reportes/exportar?tipo=meseros")
         assert response.status_code == 200
         assert "spreadsheetml" in response.headers["content-type"]
 
-    def test_exportar_tipo_invalido(self, client, setup_db_override):
+    def test_exportar_tipo_invalido(self, client_autenticado, setup_db_override):
         """Tipo inválido retorna 400"""
-        response = client.get("/api/v1/reportes/exportar?tipo=invalido")
+        response = client_autenticado.get("/api/v1/reportes/exportar?tipo=invalido")
         assert response.status_code == 400
 
-    def test_exportar_sin_tipo(self, client, setup_db_override):
+    def test_exportar_sin_tipo(self, client_autenticado, setup_db_override):
         """Sin parámetro tipo retorna 422"""
-        response = client.get("/api/v1/reportes/exportar")
+        response = client_autenticado.get("/api/v1/reportes/exportar")
         assert response.status_code == 422

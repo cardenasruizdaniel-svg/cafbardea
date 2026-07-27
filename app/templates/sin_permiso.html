@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="panel" style="max-width:520px;margin:60px auto;text-align:center">
+  <div style="font-size:56px;margin-bottom:12px">🔒</div>
+  <h1 style="color:var(--primary)">Acceso restringido</h1>
+  <p>Tu rol no tiene permiso para acceder al módulo
+     <strong>{{ modulo }}</strong>.</p>
+  <p class="muted">Si crees que deberías tener acceso, pídele a un administrador
+     que revise los permisos de tu rol en Usuarios y Roles.</p>
+  <a href="/dashboard" class="btn" style="margin-top:16px;display:inline-block">
+     Volver al inicio</a>
+</section>
+{% endblock %}

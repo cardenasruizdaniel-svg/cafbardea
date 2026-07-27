@@ -417,3 +417,42 @@ a {
         grid-column: 1;
     }
 }
+
+/* ============================================================
+   PWA: boton de instalacion y banner offline (Paso 13)
+   ============================================================ */
+.pwa-install-btn {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 9999;
+  padding: 12px 18px;
+  border: none;
+  border-radius: 999px;
+  background: var(--primary, #d4af37);
+  color: #0a0e27;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+}
+.pwa-install-btn:active { transform: scale(0.97); }
+
+.pwa-offline-banner {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9999;
+  padding: 10px 16px;
+  text-align: center;
+  background: #b91c1c;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* En modo instalado (standalone), dar respiro a la safe-area del celular. */
+@media (display-mode: standalone) {
+  body { padding-bottom: env(safe-area-inset-bottom); }
+}

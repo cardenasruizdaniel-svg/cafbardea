@@ -11,7 +11,7 @@ from app.database import get_db
 from .schemas import (
     MesaCreate, MesaResponse, MesaUpdate, CambiarEstadoMesa,
     FloorPlanResponse, EstadisticasMesa, ReporteMesaResponse, 
-    ZonaResponse, EstadoMesa, FormaMesa
+    ZonaResponse, EstadoMesa, FormaMesa, ReservarMesa
 )
 from .services import MesaService
 from app.config import logger
@@ -63,25 +63,6 @@ def crear_mesa(
 # ============================================================================
 
 @router.get(
-    "/{mesa_id}",
-    response_model=MesaResponse,
-    summary="Obtener detalles de mesa"
-)
-def obtener_mesa(mesa_id: int, db: Session = Depends(get_db)):
-    """Obtener información completa de una mesa"""
-    service = MesaService(db)
-    mesa = service.obtener_mesa(mesa_id)
-    
-    if not mesa:
-        raise HTTPException(status_code=404, detail="Mesa no encontrada")
-    
-    return mesa
-
-# ============================================================================
-# LISTAR MESAS
-# ============================================================================
-
-@router.get(
     "",
     response_model=List[ReporteMesaResponse],
     summary="Listar mesas por zona"
@@ -105,7 +86,7 @@ def listar_mesas(
             zona=m.zona.nombre if m.zona else "Desconocida",
             capacidad=m.capacidad,
             estado=m.estado,
-            ocupacion="Disponible" if m.estado == "disponible" else f"Ocupada"
+            ocupacion="Disponible" if m.estado == "libre" else f"Ocupada"
         )
         for m in mesas
     ]
@@ -133,7 +114,7 @@ def obtener_floor_plan(db: Session = Depends(get_db)):
                 nombre=zona.nombre,
                 orden=zona.orden,
                 mesas_count=len(zona.mesas),
-                mesas_disponibles=len([m for m in zona.mesas if m.estado == "disponible"]),
+                mesas_disponibles=len([m for m in zona.mesas if m.estado == "libre"]),
                 mesas=[
                     MesaResponse(
                         id=m.id,
@@ -308,3 +289,81 @@ def obtener_estados():
 def obtener_formas():
     """Formas de mesa disponibles"""
     return [f.value for f in FormaMesa]
+
+# ============================================================================
+# DETALLE OPERATIVO, RESERVAS, UNION Y TRANSFERENCIA
+# ============================================================================
+
+@router.get("/{mesa_id}/detalle", summary="Detalle operativo de la mesa")
+def detalle_mesa(mesa_id: int, db: Session = Depends(get_db)):
+    """Tiempo ocupada, consumo acumulado, mesero y comensales."""
+    try:
+        return MesaService(db).detalle_mesa(mesa_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.post("/{mesa_id}/reservar", summary="Reservar mesa")
+def reservar_mesa(mesa_id: int, datos: ReservarMesa, db: Session = Depends(get_db)):
+    """Registrar reserva. Antes el esquema existia pero nadie lo usaba."""
+    try:
+        r = MesaService(db).reservar(mesa_id, datos)
+        return {"id": r.id, "mesa_id": r.mesa_id, "cliente_nombre": r.cliente_nombre,
+                "personas": r.personas, "fecha_hora": r.fecha_hora, "estado": r.estado}
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+
+
+@router.post("/reservas/{reserva_id}/cancelar", summary="Cancelar reserva")
+def cancelar_reserva(reserva_id: int, db: Session = Depends(get_db)):
+    try:
+        r = MesaService(db).cancelar_reserva(reserva_id)
+        return {"id": r.id, "estado": r.estado}
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.post("/{mesa_id}/unir", summary="Unir mesas")
+def unir_mesas(mesa_id: int, mesa_ids: list[int], db: Session = Depends(get_db)):
+    try:
+        m = MesaService(db).unir_mesas(mesa_id, mesa_ids)
+        return {"mesa_principal": m.id, "unidas": mesa_ids, "estado": m.estado}
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+
+
+@router.post("/{mesa_id}/separar", summary="Separar mesas unidas")
+def separar_mesas(mesa_id: int, db: Session = Depends(get_db)):
+    hijas = MesaService(db).separar_mesas(mesa_id)
+    return {"mesa_principal": mesa_id, "separadas": [m.id for m in hijas]}
+
+
+@router.post("/transferir/{venta_id}/a/{mesa_destino_id}", summary="Transferir cuenta")
+def transferir_venta(venta_id: int, mesa_destino_id: int, db: Session = Depends(get_db)):
+    try:
+        v = MesaService(db).transferir_venta(venta_id, mesa_destino_id)
+        return {"venta_id": v.id, "mesa_id": v.mesa_id}
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+
+# NOTA: esta ruta va al FINAL a proposito. "/{mesa_id}" es un comodin
+# que captura cualquier segmento, de modo que si se declara antes
+# intercepta rutas como /estadisticas o /plano/completo.
+@router.get(
+    "/{mesa_id}",
+    response_model=MesaResponse,
+    summary="Obtener detalles de mesa"
+)
+def obtener_mesa(mesa_id: int, db: Session = Depends(get_db)):
+    """Obtener información completa de una mesa"""
+    service = MesaService(db)
+    mesa = service.obtener_mesa(mesa_id)
+    
+    if not mesa:
+        raise HTTPException(status_code=404, detail="Mesa no encontrada")
+    
+    return mesa
+
+# ============================================================================
+# LISTAR MESAS
+# ============================================================================

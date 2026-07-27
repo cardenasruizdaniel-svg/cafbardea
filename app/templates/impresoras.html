@@ -1,0 +1,66 @@
+{% extends "base.html" %}{% block content %}
+<header><div><p class="eyebrow">CONFIGURACIÓN</p><h1>Impresoras y grupos de impresión</h1></div></header>
+<p class="muted">La comanda de cada producto va a una impresora según esta regla:
+   primero la impresora propia del producto; si no tiene, la de su grupo; si
+   tampoco, la impresora marcada por defecto.</p>
+
+<div class="two-col">
+  <section class="panel">
+    <h2>Nueva impresora</h2>
+    <form class="stack" action="/impresoras" method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <input name="nombre" placeholder="Nombre (ej: Cocina caliente)" required>
+      <input name="destino" placeholder="Destino (IP, cola o 'local')" value="local">
+      <select name="tipo_conexion">
+        <option value="local">Local</option>
+        <option value="red">Red (IP)</option>
+        <option value="usb">USB</option>
+      </select>
+      <label style="font-size:13px"><input type="checkbox" name="es_por_defecto"> Impresora por defecto</label>
+      <button>Agregar impresora</button>
+    </form>
+  </section>
+
+  <section class="panel">
+    <h2>Nuevo grupo de impresión</h2>
+    <form class="stack" action="/impresoras/grupos" method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <input name="nombre" placeholder="Nombre (ej: Bebidas frías)" required>
+      <select name="impresora_id">
+        <option value="">— Sin impresora asignada —</option>
+        {% for i in impresoras %}<option value="{{i.id}}">{{i.nombre}}</option>{% endfor %}
+      </select>
+      <button>Crear grupo</button>
+    </form>
+  </section>
+</div>
+
+<section class="panel">
+  <h2>Impresoras</h2>
+  <table>
+    <tr><th>Nombre</th><th>Destino</th><th>Conexión</th><th>Por defecto</th><th>Estado</th></tr>
+    {% for i in impresoras %}
+    <tr>
+      <td>{{i.nombre}}</td><td>{{i.destino}}</td><td>{{i.tipo_conexion}}</td>
+      <td>{% if i.es_por_defecto %}<span class="badge">Sí</span>{% else %}—{% endif %}</td>
+      <td>{% if i.activa %}<span style="color:#4ade80">activa</span>{% else %}inactiva{% endif %}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% if not impresoras %}<p class="muted">Aún no hay impresoras configuradas.</p>{% endif %}
+</section>
+
+<section class="panel">
+  <h2>Grupos de impresión</h2>
+  <table>
+    <tr><th>Grupo</th><th>Impresora</th></tr>
+    {% for g in grupos %}
+    <tr><td>{{g.nombre}}</td>
+      <td>{% for i in impresoras if i.id==g.impresora_id %}{{i.nombre}}{% else %}{% endfor %}
+          {% if not g.impresora_id %}<span class="muted">sin asignar</span>{% endif %}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% if not grupos %}<p class="muted">Aún no hay grupos.</p>{% endif %}
+</section>
+{% endblock %}

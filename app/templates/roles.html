@@ -1,0 +1,55 @@
+{% extends "base.html" %}{% block content %}
+<header><div><p class="eyebrow">SEGURIDAD</p><h1>Roles y permisos</h1></div></header>
+<p class="muted">Cada rol tiene acceso a los módulos que marques. El
+   administrador tiene acceso total y no se puede editar ni eliminar.</p>
+
+<section class="panel">
+  <h2>Crear rol nuevo</h2>
+  <form class="stack" action="/roles" method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <input name="nombre" placeholder="Nombre del rol (ej: Supervisor)" required>
+    <label>Nivel de acceso (1-99)
+      <input name="nivel_acceso" type="number" min="1" max="99" value="30"></label>
+    <fieldset style="border:1px solid var(--border);border-radius:8px;padding:10px">
+      <legend style="font-size:13px">Módulos permitidos</legend>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:6px">
+        {% for cod, nombre in modulos %}
+        <label style="font-size:13px"><input type="checkbox" name="modulos" value="{{cod}}"> {{nombre}}</label>
+        {% endfor %}
+      </div>
+    </fieldset>
+    <button>Crear rol</button>
+  </form>
+</section>
+
+<section class="panel">
+  <h2>Roles existentes</h2>
+  {% for r in roles %}
+  <div class="panel" style="margin-bottom:12px">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <h3>{{ r.nombre }} <span class="muted" style="font-size:12px">(nivel {{ r.nivel_acceso }}{% if r.es_predefinido %} · del sistema{% endif %})</span></h3>
+      {% if r.nivel_acceso < 100 and not r.es_predefinido %}
+      <form action="/roles/{{r.id}}/eliminar" method="post" onsubmit="return confirm('¿Eliminar el rol {{r.nombre}}?')">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button class="btn-sm" style="background:#7f1d1d">Eliminar</button>
+      </form>
+      {% endif %}
+    </div>
+    {% if r.nivel_acceso >= 100 %}
+    <p class="muted">Acceso total a todos los módulos (super administrador).</p>
+    {% else %}
+    <form action="/roles/{{r.id}}/permisos" method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:6px;margin:8px 0">
+        {% set permisos_rol = permisos_por_rol.get(r.id, []) %}
+        {% for cod, nombre in modulos %}
+        <label style="font-size:13px"><input type="checkbox" name="modulos" value="{{cod}}" {% if cod in permisos_rol %}checked{% endif %}> {{nombre}}</label>
+        {% endfor %}
+      </div>
+      <button class="btn-sm">Guardar permisos</button>
+    </form>
+    {% endif %}
+  </div>
+  {% endfor %}
+</section>
+{% endblock %}

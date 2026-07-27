@@ -2,9 +2,16 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="theme-color" content="#0a0e27">
     <title>{{ empresa.nombre }} | CAFBARDLA</title>
+
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.webmanifest">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="CafBarDLA">
+    <link rel="apple-touch-icon" href="/static/icons/icon-192.png">
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='75' font-size='75'>☕</text></svg>">
     
     <!-- CSS base heredado (carga primero para que el diseño premium lo sobrescriba) -->
@@ -164,5 +171,8 @@
     </script>
     
     {% block extra_js %}{% endblock %}
+
+    <!-- PWA: registro de service worker, instalacion y estado offline -->
+    <script src="/static/js/pwa.js"></script>
 </body>
 </html>

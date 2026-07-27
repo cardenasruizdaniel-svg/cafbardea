@@ -24,6 +24,7 @@ from app.database import get_db
 from sqlalchemy.orm import Session
 from sqlalchemy import func, select, and_
 from app.models import (
+    fecha_colombia,
     Venta, DetalleVenta, Producto, Categoria,
     Empleado, Usuario, Empresa
 )
@@ -101,7 +102,7 @@ class InventarioReporteItem(BaseModel):
 # ============================================================================
 
 def _rango_fechas(desde: Optional[date], hasta: Optional[date]):
-    hoy = date.today()
+    hoy = fecha_colombia()
     d = desde or (hoy - timedelta(days=30))
     h = hasta or hoy
     return d, h
@@ -442,7 +443,7 @@ def exportar_reporte(
             cell.fill = header_fill
             cell.alignment = header_align
 
-    tipos_validos = {"ventas", "productos", "inventario", "meseros"}
+    tipos_validos = {"ventas", "productos", "inventario", "meseros", "rentabilidad"}
     if tipo not in tipos_validos:
         raise HTTPException(400, f"Tipo inválido. Use: {', '.join(tipos_validos)}")
 
@@ -473,6 +474,18 @@ def exportar_reporte(
         _set_headers(["Nombre", "Ventas", "Total ($)", "Ticket Promedio", "Propinas"])
         for m in datos:
             ws.append([m.nombre, m.ventas_cerradas, m.total_ventas, m.ticket_promedio, m.propinas])
+
+    elif tipo == "rentabilidad":
+        ws.title = "Rentabilidad"
+        datos = reporte_rentabilidad(desde=d, hasta=h, db=db)
+        _set_headers(["Concepto", "Valor ($)"])
+        ws.append(["Ingresos totales", datos.ingresos_totales])
+        ws.append(["Costo de ventas", datos.costo_ventas])
+        ws.append(["Margen bruto", datos.margen_bruto])
+        ws.append(["Margen bruto %", datos.margen_bruto_pct])
+        ws.append(["Descuentos", datos.descuentos])
+        ws.append(["Propinas", datos.propinas])
+        ws.append(["Resultado neto", datos.resultado_neto])
 
     # Ajustar ancho de columnas
     for col in ws.columns:

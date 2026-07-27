@@ -22,7 +22,7 @@ import uuid
 
 from app.database import get_db
 from sqlalchemy.orm import Session
-from app.models import Usuario, Mesa, Venta, DetalleVenta, Empresa, Producto
+from app.models import hora_colombia, Usuario, Mesa, Venta, DetalleVenta, Empresa, Producto
 from app.services.jwt_service import JWTService, TokenBlacklist
 from app.websocket_manager import connection_manager, event_broadcaster
 from sqlalchemy import and_
@@ -648,7 +648,7 @@ async def pagar_comanda(
     # Marcar como pagada
     venta.estado = "pagada"
     venta.medio_pago = request.medio_pago
-    venta.fecha_pago = datetime.utcnow()
+    venta.fecha_pago = hora_colombia()
     
     # Generar factura ID
     factura_id = f"FAC-{datetime.now().strftime('%Y%m%d%H%M%S')}-{venta_id}"
@@ -681,7 +681,7 @@ async def pagar_comanda(
         monto_pagado=float(venta.total),
         cambio=request.monto_recibido - venta.total if request.monto_recibido else None,
         medio_pago=request.medio_pago,
-        timestamp=datetime.utcnow().isoformat()
+        timestamp=hora_colombia().isoformat()
     )
 
 

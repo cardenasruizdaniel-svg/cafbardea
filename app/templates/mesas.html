@@ -403,12 +403,12 @@
 	</section>
 
 	<div class="actions">
-		<form action="/zonas" method="post">
+		<form action="/zonas" method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 			<input name="nombre" placeholder="Nueva zona" required>
 			<button>Crear zona</button>
 		</form>
 
-		<form action="/mesas" method="post">
+		<form action="/mesas" method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 			<select name="zona_id" aria-label="Zona para nueva mesa">
 				{% for z in zonas %}
 				<option value="{{ z.id }}">{{ z.nombre }}</option>
@@ -441,6 +441,15 @@
 					<b>{{ m.nombre }}</b>
 					<small>{{ m.capacidad }} puestos</small>
 					<em>{{ m.estado }}</em>
+					{% set d = detalles.get(m.id) if detalles else None %}
+					{% if d and d.estado == 'ocupada' %}
+					<span class="table-meta">
+						{% if d.minutos_ocupada is not none %}<i>{{ d.minutos_ocupada }} min</i>{% endif %}
+						{% if d.consumo %}<i>${{ '{:,.0f}'.format(d.consumo) }}</i>{% endif %}
+						{% if d.mesero %}<i>{{ d.mesero }}</i>{% endif %}
+						{% if d.comensales %}<i>{{ d.comensales }} pax</i>{% endif %}
+					</span>
+					{% endif %}
 				</a>
 				{% endfor %}
 			{% else %}

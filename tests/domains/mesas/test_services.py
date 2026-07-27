@@ -35,7 +35,7 @@ class TestMesaServiceCrear:
         assert mesa.id is not None
         assert mesa.nombre == "M1"
         assert mesa.capacidad == 4
-        assert mesa.estado == "disponible"
+        assert mesa.estado == "libre"
     
     def test_crear_mesa_zona_no_existe(self, db_session):
         """Error si zona no existe"""
@@ -55,7 +55,7 @@ class TestMesaServiceObtener:
     def test_obtener_mesa_existente(self, db_session):
         """Obtener mesa que existe"""
         zona = Zona(nombre="Salón", orden=1)
-        mesa = Mesa(zona_id=0, nombre="M1", capacidad=4, estado="disponible")
+        mesa = Mesa(zona_id=0, nombre="M1", capacidad=4, estado="libre")
         db_session.add_all([zona, mesa])
         db_session.flush()
         
@@ -79,8 +79,8 @@ class TestMesaServiceObtener:
         db_session.flush()
         
         mesas = [
-            Mesa(zona_id=zona.id, nombre="M1", capacidad=4, estado="disponible"),
-            Mesa(zona_id=zona.id, nombre="M2", capacidad=2, estado="disponible"),
+            Mesa(zona_id=zona.id, nombre="M1", capacidad=4, estado="libre"),
+            Mesa(zona_id=zona.id, nombre="M2", capacidad=2, estado="libre"),
         ]
         db_session.add_all(mesas)
         db_session.flush()
@@ -97,7 +97,7 @@ class TestMesaServiceCambiarEstado:
     def test_cambiar_a_limpieza(self, db_session):
         """Cambiar mesa a limpieza"""
         zona = Zona(nombre="Salón", orden=1)
-        mesa = Mesa(zona_id=0, nombre="M1", capacidad=4, estado="disponible")
+        mesa = Mesa(zona_id=0, nombre="M1", capacidad=4, estado="libre")
         db_session.add_all([zona, mesa])
         db_session.flush()
         
@@ -118,7 +118,7 @@ class TestMesaServiceCambiarEstado:
     def test_ocupar_mesa(self, db_session):
         """Ocupar mesa disponible"""
         zona = Zona(nombre="Salón", orden=1)
-        mesa = Mesa(zona_id=0, nombre="M1", capacidad=4, estado="disponible")
+        mesa = Mesa(zona_id=0, nombre="M1", capacidad=4, estado="libre")
         db_session.add_all([zona, mesa])
         db_session.flush()
         
@@ -137,7 +137,7 @@ class TestMesaServiceCambiarEstado:
         service = MesaService(db_session)
         resultado = service.liberar_mesa(mesa.id)
         
-        assert resultado.estado == "disponible"
+        assert resultado.estado == "libre"
 
 
 class TestMesaServiceEstadisticas:

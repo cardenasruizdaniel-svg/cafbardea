@@ -73,7 +73,8 @@ class TestVentaService:
             descuento=Decimal("1000")  # Descuento de $1000
         )
         
-        venta = service.crear_venta(venta_data, usuario.id, usuario.empresa_id)
+        venta = service.crear_venta(venta_data, usuario.id, usuario.empresa_id,
+                                    puede_precio_libre=True)
         
         assert venta.subtotal == Decimal("10000")
         assert venta.descuento == Decimal("1000")
@@ -100,7 +101,8 @@ class TestVentaService:
             propina_porcentaje=Decimal("10")  # 10% de propina
         )
         
-        venta = service.crear_venta(venta_data, usuario.id, usuario.empresa_id)
+        venta = service.crear_venta(venta_data, usuario.id, usuario.empresa_id,
+                                    puede_precio_libre=True)
         
         assert venta.propina == Decimal("1000")  # 10% de 10000
         assert venta.total == Decimal("11000")  # 10000 + 1000
@@ -216,7 +218,7 @@ class TestVentaService:
         
         venta_pagada = service.procesar_pago(venta.id, pago, usuario.empresa_id)
         
-        assert venta_pagada.estado == "cerrada"
+        assert venta_pagada.estado == "pagada"
         assert venta_pagada.fecha_cierre is not None
     
     def test_procesar_pago_monto_insuficiente(self, db_session: Session):
@@ -240,7 +242,8 @@ class TestVentaService:
             ]
         )
         
-        venta = service.crear_venta(venta_data, usuario.id, usuario.empresa_id)
+        venta = service.crear_venta(venta_data, usuario.id, usuario.empresa_id,
+                                    puede_precio_libre=True)
         
         # Pago insuficiente
         pago = PagoCreate(

@@ -13,7 +13,8 @@ from decimal import Decimal
 class EstadoVenta(str, Enum):
     """Estados posibles de una venta"""
     ABIERTA = "abierta"
-    CERRADA = "cerrada"
+    CERRADA = "cerrada"  # legado; el flujo actual usa PAGADA
+    PAGADA = "pagada"
     SUSPENDIDA = "suspendida"
     CANCELADA = "cancelada"
     FACTURADA = "facturada"
@@ -172,7 +173,8 @@ class VentaResponse(BaseModel):
     mesa_id: Optional[int]
     zona_id: Optional[int]
     cliente_id: Optional[int]
-    usuario_id: int
+    # nullable en el modelo: ventas de autoservicio pueden no tener usuario
+    usuario_id: Optional[int]
     empresa_id: int
     
     # Montos

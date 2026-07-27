@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="panel">
+  <h1>Copias de seguridad</h1>
+  <p class="muted">Cada copia se comprime y se verifica al crearse. Guárdalas
+     también en otro lugar (disco externo o nube) para mayor seguridad.</p>
+
+  <form method="post" action="/backups/crear" style="margin:16px 0">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <button type="submit" class="btn">Crear copia ahora</button>
+  </form>
+
+  <table>
+    <tr><th>Nombre</th><th>Motor</th><th>Tamaño</th><th>Estado</th><th></th></tr>
+    {% for c in copias %}
+    <tr>
+      <td>{{ c.nombre }}</td>
+      <td>{{ c.motor or '—' }}</td>
+      <td>{{ '%.0f KB'|format((c.tamano_bytes or 0)/1024) }}</td>
+      <td>{% if c.corrupto %}<span style="color:#f87171">corrupta</span>
+          {% else %}<span style="color:#4ade80">íntegra</span>{% endif %}</td>
+      <td>
+        {% if not c.corrupto %}
+        <form method="post" action="/backups/restaurar"
+              onsubmit="return confirm('Restaurar esta copia REEMPLAZARÁ los datos actuales. Se hará una copia previa automática. ¿Continuar?')">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <input type="hidden" name="nombre" value="{{ c.nombre }}">
+          <button type="submit" class="btn-sm">Restaurar</button>
+        </form>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% if not copias %}<p class="muted">Aún no hay copias. Crea la primera.</p>{% endif %}
+</section>
+{% endblock %}
