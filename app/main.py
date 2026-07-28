@@ -777,8 +777,9 @@ def mesas(request: Request, db: Session = Depends(get_db)):
 def crear_zona(request: Request, nombre: str = Form(...),
                db: Session = Depends(get_db)):
     exigir_rol(request, "administrador", "gerente")
-    db.add(Zona(nombre=nombre.strip(),
-                orden=(db.scalar(select(func.count(Zona.id))) or 0) + 1))
+    nombre_clean = nombre.strip() if nombre else "Nueva Zona"
+    orden = (db.scalar(select(func.count(Zona.id))) or 0) + 1
+    db.add(Zona(empresa_id=1, nombre=nombre_clean, orden=orden, activa=True))
     db.commit()
     return RedirectResponse("/mesas", 303)
 

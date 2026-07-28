@@ -427,9 +427,10 @@ select {
   border-radius: var(--radius-xl);
 }
 
-.table {
+table.table, table.data-table {
   width: 100%;
   border-collapse: collapse;
+
   
   thead {
     background-color: rgba(212, 175, 55, 0.1);

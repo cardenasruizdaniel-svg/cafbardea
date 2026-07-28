@@ -76,27 +76,34 @@
 		display: inline-flex;
 		align-items: center;
 		gap: 8px;
-		padding: 5px 10px;
+		padding: 6px 14px;
 		border-radius: 999px;
-		font-size: 11px;
+		font-size: 12px;
 		font-weight: 700;
-		letter-spacing: 0.2px;
-		border: 1px solid var(--line-soft);
-		background: #fff;
-		color: #4e453b;
+		letter-spacing: 0.3px;
+		border: 1.5px solid transparent;
+		background: #ffffff;
+		color: #1e293b;
+		box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
 	}
 
+	.mesas-page .legend-item.libre { background: rgba(16, 185, 129, 0.12); color: #065f46; border-color: #10b981; }
+	.mesas-page .legend-item.ocupada { background: rgba(239, 68, 68, 0.12); color: #991b1b; border-color: #ef4444; }
+	.mesas-page .legend-item.reservada { background: rgba(245, 158, 11, 0.12); color: #92400e; border-color: #f59e0b; }
+	.mesas-page .legend-item.limpieza { background: rgba(59, 130, 246, 0.12); color: #1e40af; border-color: #3b82f6; }
+
 	.mesas-page .legend-dot {
-		width: 9px;
-		height: 9px;
+		width: 10px;
+		height: 10px;
 		border-radius: 999px;
 		display: inline-block;
 	}
 
-	.mesas-page .legend-dot.libre { background: var(--ok); }
-	.mesas-page .legend-dot.ocupada { background: var(--busy); }
-	.mesas-page .legend-dot.reservada { background: var(--warn); }
-	.mesas-page .legend-dot.limpieza { background: var(--clean); }
+	.mesas-page .legend-dot.libre { background: #10b981; box-shadow: 0 0 6px rgba(16, 185, 129, 0.6); }
+	.mesas-page .legend-dot.ocupada { background: #ef4444; box-shadow: 0 0 6px rgba(239, 68, 68, 0.6); }
+	.mesas-page .legend-dot.reservada { background: #f59e0b; box-shadow: 0 0 6px rgba(245, 158, 11, 0.6); }
+	.mesas-page .legend-dot.limpieza { background: #3b82f6; box-shadow: 0 0 6px rgba(59, 130, 246, 0.6); }
+
 
 	.mesas-page .actions {
 		display: grid;
@@ -241,32 +248,36 @@
 		font-weight: 800;
 	}
 
-	.mesas-page .table.ocupada {
-		border-color: #f2be98;
-		color: #8b3e12;
-		background: linear-gradient(165deg, #fff8f2, #ffe1c8);
-		box-shadow: 0 10px 16px rgba(110, 44, 5, 0.14);
+	.mesas-page .floor .table.ocupada {
+		border: 2px solid #ef4444 !important;
+		color: #991b1b !important;
+		background: linear-gradient(165deg, #fef2f2, #fee2e2) !important;
+		box-shadow: 0 10px 16px rgba(239, 68, 68, 0.2) !important;
 	}
 
-	.mesas-page .table.reservada {
-		border-color: #edd37d;
-		color: #7e6207;
-		background: linear-gradient(165deg, #fffef4, #fff1b9);
+	.mesas-page .floor .table.reservada {
+		border: 2px solid #f59e0b !important;
+		color: #92400e !important;
+		background: linear-gradient(165deg, #fffbeb, #fef3c7) !important;
+		box-shadow: 0 10px 16px rgba(245, 158, 11, 0.2) !important;
 	}
 
-	.mesas-page .table.limpieza,
-	.mesas-page .table.mantenimiento {
-		border-color: #a8c7ef;
-		color: #185097;
-		background: linear-gradient(165deg, #f5faff, #dfeefe);
+	.mesas-page .floor .table.limpieza,
+	.mesas-page .floor .table.mantenimiento {
+		border: 2px solid #3b82f6 !important;
+		color: #1e40af !important;
+		background: linear-gradient(165deg, #eff6ff, #dbeafe) !important;
+		box-shadow: 0 10px 16px rgba(59, 130, 246, 0.2) !important;
 	}
 
-	.mesas-page .table.disponible,
-	.mesas-page .table.libre {
-		border-color: #9fd4bc;
-		color: #0f6b4a;
-		background: linear-gradient(165deg, #f2fff9, #dcf7eb);
+	.mesas-page .floor .table.disponible,
+	.mesas-page .floor .table.libre {
+		border: 2px solid #10b981 !important;
+		color: #065f46 !important;
+		background: linear-gradient(165deg, #ecfdf5, #d1fae5) !important;
+		box-shadow: 0 10px 16px rgba(16, 185, 129, 0.2) !important;
 	}
+
 
 	.mesas-page .table.redonda {
 		border-radius: 999px;
@@ -411,11 +422,12 @@
 		<p class="hero-note">Vista clara para servicio rápido: toca una mesa para abrir comanda.</p>
 
 		<div class="legend" aria-label="Estados de mesa">
-			<span class="legend-item"><span class="legend-dot libre"></span>Libre</span>
-			<span class="legend-item"><span class="legend-dot ocupada"></span>Ocupada</span>
-			<span class="legend-item"><span class="legend-dot reservada"></span>Reservada</span>
-			<span class="legend-item"><span class="legend-dot limpieza"></span>Limpieza</span>
+			<span class="legend-item libre"><span class="legend-dot libre"></span>Libre</span>
+			<span class="legend-item ocupada"><span class="legend-dot ocupada"></span>Ocupada</span>
+			<span class="legend-item reservada"><span class="legend-dot reservada"></span>Reservada</span>
+			<span class="legend-item limpieza"><span class="legend-dot limpieza"></span>Limpieza</span>
 		</div>
+
 	</section>
 
 	<div class="actions">
