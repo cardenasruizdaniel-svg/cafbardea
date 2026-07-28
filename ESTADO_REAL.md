@@ -1786,3 +1786,62 @@ realmente operable desde el navegador.
 - Separar modulo de meseros (que no mande a la ventana de mesas de la web).
 - Modulos independientes con identidad propia (mesero, cliente, gerencial, web).
 - Motor de reconocimiento facial (fuera de este entorno).
+
+
+---
+
+# Paso 30: Correccion del error 500 al crear zona + auto-migracion en arranque
+
+El usuario reporto que crear zona ahora daba error 500 (referencia ace0c862) en
+produccion (Render), aun cuando en el paso anterior se habia revisado. Pidio
+corregir TODOS los errores del programa.
+
+## Causa raiz del 500 (por que fallaba en produccion y no en local)
+
+La migracion 0001 crea las tablas con Base.metadata.create_all, que refleja el
+modelo del momento y NO modifica tablas ya existentes. La tabla 'zonas' nunca
+tuvo una migracion propia que agregara sus columnas (empresa_id, orden, activa).
+En una base de produccion creada con una version antigua del modelo, esas
+columnas faltaban. El INSERT INTO zonas (empresa_id, nombre, orden, activa) fallaba
+con 500 en PostgreSQL (Render), aunque en SQLite local funcionara. Por eso "todo
+funcionaba" en las pruebas locales pero fallaba en produccion.
+
+## Que se corrigio
+
+1. **Migracion 0015**: sincroniza de forma idempotente las columnas de las tablas
+   base (zonas, mesas, productos) con el modelo actual, agregando SOLO lo que
+   falte. Compatible con SQLite y PostgreSQL. Probada sobre una tabla 'zonas'
+   vieja (solo id, nombre): queda con empresa_id, orden y activa, y el INSERT que
+   fallaba ahora funciona conservando los datos existentes.
+
+2. **Auto-migracion en el arranque**: la app ahora ejecuta 'alembic upgrade head'
+   al iniciar (en el lifespan). Antes, en produccion las migraciones no se
+   aplicaban solas (el arranque solo hacia create_all, que no repara tablas
+   existentes). Ahora, al desplegar en Render, la base se repara sola. Es seguro:
+   las migraciones son idempotentes; si algo falla, se registra y el arranque
+   continua.
+
+## Revision integral (ensayo con navegador real)
+
+- Navegacion de las 21 paginas del sistema: TODAS 200, CERO errores 500.
+- Acciones con navegador real: crear zona OK, crear empleado OK; crear mesa y
+  producto verificados por separado con formulario completo (303, guardados).
+- CERO errores 500 en todo el ensayo.
+
+## Verificacion
+
+- Migracion 0015 idempotente; repara tabla vieja; cadena 0001->0015 desde vacio
+  (15 migraciones); auto-aplicacion en arranque probada con BD desalineada.
+- Suite: 532 aciertos, 0 fallos (529 previos + 3 nuevos de regresion del esquema).
+
+## Nota para el despliegue
+
+Al subir esta version a Render, el arranque aplicara las migraciones y reparara
+la tabla zonas (y cualquier otra desalineada) automaticamente. El error 500 al
+crear zona desaparecera sin intervencion manual.
+
+## Lo que sigue
+
+- Separar modulo de meseros (que no mande a la ventana de mesas de la web).
+- Modulos independientes con identidad propia (mesero, cliente, gerencial, web).
+- Motor de reconocimiento facial (fuera de este entorno).

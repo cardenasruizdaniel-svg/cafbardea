@@ -69,6 +69,21 @@ def seed(db: Session):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Aplicar migraciones pendientes al arrancar. Esto repara esquemas de
+    # produccion que quedaron desalineados (p. ej. tablas creadas por un
+    # create_all antiguo a las que les faltan columnas nuevas). Es seguro:
+    # las migraciones son idempotentes y solo agregan lo que falta.
+    try:
+        from alembic import command as _alembic_command
+        from alembic.config import Config as _AlembicConfig
+        _cfg = _AlembicConfig(str(APP_DIR.parent / "alembic.ini"))
+        _cfg.set_main_option("script_location", str(APP_DIR.parent / "alembic"))
+        _alembic_command.upgrade(_cfg, "head")
+        logger.info("✅ Migraciones aplicadas (alembic upgrade head)")
+    except Exception as e:
+        # No abortar el arranque por esto; se registra para diagnostico.
+        logger.warning(f"No se pudieron aplicar migraciones automaticamente: {e}")
+
     if settings.auto_create_schema:
         Base.metadata.create_all(engine)
         with Session(engine) as db: seed(db)

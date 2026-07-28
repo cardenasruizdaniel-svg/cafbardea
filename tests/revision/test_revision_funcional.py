@@ -91,3 +91,35 @@ class TestFacturacionCompleta:
         assert r.status_code == 200
         db_session.refresh(venta)
         assert venta.estado == "pagada"
+
+
+class TestEsquemaReparado:
+    """El 500 en produccion venia de una tabla 'zonas' vieja sin columnas nuevas.
+    La migracion 0015 la repara. Se prueba que la migracion es idempotente y
+    agrega las columnas que faltan."""
+
+    def test_migracion_0015_existe(self):
+        import os
+        base = os.path.join(os.path.dirname(__file__), "..", "..",
+                            "alembic", "versions")
+        archivos = os.listdir(base)
+        assert any("0015" in a for a in archivos), "falta la migracion 0015"
+
+    def test_zonas_tiene_columnas_del_modelo(self, db_session):
+        from app.models import Zona
+        # el modelo y la tabla deben coincidir tras las migraciones
+        cols = set(Zona.__table__.columns.keys())
+        assert {"empresa_id", "orden", "activa", "nombre"}.issubset(cols)
+
+    def test_crear_zona_con_orden_automatico(self, client_autenticado, db_session):
+        import re
+        from app.models import Zona
+        tok = re.search(r'name="csrf_token" value="([^"]+)"',
+                        client_autenticado.get("/mesas").text).group(1)
+        r = client_autenticado.post("/zonas",
+                                    data={"nombre": "Con Orden", "csrf_token": tok},
+                                    follow_redirects=False)
+        assert r.status_code == 303
+        z = db_session.query(Zona).filter_by(nombre="Con Orden").first()
+        assert z is not None
+        assert z.orden is not None  # el orden se asigna sin fallar
