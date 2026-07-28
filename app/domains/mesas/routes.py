@@ -45,13 +45,16 @@ def crear_mesa(
     mesa_data: MesaCreate,
     db: Session = Depends(get_db)
 ):
-    """Crear nueva mesa en zona"""
     try:
+        from app.models import Empresa
+        emp = db.scalar(select(Empresa).limit(1))
+        emp_id = emp.id if emp else 1
         service = MesaService(db)
-        mesa = service.crear_mesa(mesa_data, 1)  # empresa_id=1 por ahora
+        mesa = service.crear_mesa(mesa_data, emp_id)
         
         logger.info(f"Mesa {mesa.nombre} creada en zona {mesa.zona_id}")
         return mesa
+
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
     except Exception as e:

@@ -765,7 +765,6 @@ def mesas(request: Request, db: Session = Depends(get_db)):
                 detalles[mesa.id] = servicio.detalle_mesa(mesa.id)
             except ValueError:
                 continue
-
     return templates.TemplateResponse(request, "mesas.html", context(request, db) | {
         "zonas": zonas,
         "detalles": detalles,
@@ -773,14 +772,31 @@ def mesas(request: Request, db: Session = Depends(get_db)):
         "reservas": servicio.reservas_activas(),
     })
 
+
+def _obtener_empresa_id(db: Session) -> int:
+    emp = db.scalar(select(Empresa).limit(1))
+    if not emp:
+        emp = Empresa(nombre="Mi Café", nit="900.000.000-1")
+        db.add(emp)
+        db.commit()
+        db.refresh(emp)
+    return emp.id
+
+
 @app.post("/zonas")
 def crear_zona(request: Request, nombre: str = Form(...),
                db: Session = Depends(get_db)):
     exigir_rol(request, "administrador", "gerente")
-    nombre_clean = nombre.strip() if nombre else "Nueva Zona"
-    orden = (db.scalar(select(func.count(Zona.id))) or 0) + 1
-    db.add(Zona(empresa_id=1, nombre=nombre_clean, orden=orden, activa=True))
-    db.commit()
+    try:
+        emp_id = _obtener_empresa_id(db)
+        nombre_clean = nombre.strip() if nombre else "Nueva Zona"
+        orden = (db.scalar(select(func.count(Zona.id))) or 0) + 1
+        db.add(Zona(empresa_id=emp_id, nombre=nombre_clean, orden=orden, activa=True))
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        logger.error("Error creando zona: %s", e, exc_info=True)
+        return RedirectResponse("/mesas?error=Error+al+crear+zona", 303)
     return RedirectResponse("/mesas", 303)
 
 
@@ -797,41 +813,47 @@ def eliminar_zona(zona_id: int, request: Request, db: Session = Depends(get_db))
     db.commit()
     return RedirectResponse("/mesas", 303)
 
+
 @app.post("/mesas")
 def crear_mesa(request: Request, zona_id: Optional[int] = Form(None), nombre: str = Form(""),
                capacidad: int = Form(4), forma: str = Form("redonda"),
                db: Session = Depends(get_db)):
     exigir_rol(request, "administrador", "gerente")
-    
-    if not zona_id:
-        zona = db.scalar(select(Zona).order_by(Zona.orden))
-        if not zona:
-            zona = Zona(nombre="Zona Principal", orden=1, empresa_id=1)
-            db.add(zona)
-            db.commit()
-            db.refresh(zona)
-        zona_id = zona.id
-    else:
-        zona = db.get(Zona, zona_id)
-        if not zona:
-            zona = Zona(nombre="Zona Principal", orden=1, empresa_id=1)
-            db.add(zona)
-            db.commit()
-            db.refresh(zona)
+    try:
+        emp_id = _obtener_empresa_id(db)
+        if not zona_id:
+            zona = db.scalar(select(Zona).order_by(Zona.orden))
+            if not zona:
+                zona = Zona(empresa_id=emp_id, nombre="Zona Principal", orden=1)
+                db.add(zona)
+                db.commit()
+                db.refresh(zona)
             zona_id = zona.id
+        else:
+            zona = db.get(Zona, zona_id)
+            if not zona:
+                zona = Zona(empresa_id=emp_id, nombre="Zona Principal", orden=1)
+                db.add(zona)
+                db.commit()
+                db.refresh(zona)
+                zona_id = zona.id
 
-    nombre_clean = nombre.strip() if nombre else ""
-    n = db.scalar(select(func.count(Mesa.id)).where(Mesa.zona_id == zona_id)) or 0
-    if not nombre_clean:
-        nombre_clean = f"Mesa {n + 1}"
+        nombre_clean = nombre.strip() if nombre else ""
+        n = db.scalar(select(func.count(Mesa.id)).where(Mesa.zona_id == zona_id)) or 0
+        if not nombre_clean:
+            nombre_clean = f"Mesa {n + 1}"
 
-    px = 8 + (n % 6) * 15
-    py = 10 + (n // 6) * 20
-    tamano = {"rectangular": (96, 56)}.get(forma, (64, 64))
-    db.add(Mesa(zona_id=zona_id, nombre=nombre.strip(), capacidad=capacidad,
-                forma=forma, posicion_x=px, posicion_y=py,
-                ancho=tamano[0], alto=tamano[1]))
-    db.commit()
+        px = 8 + (n % 6) * 15
+        py = 10 + (n // 6) * 20
+        tamano = {"rectangular": (96, 56), "ovalada": (80, 56)}.get(forma, (64, 64))
+        db.add(Mesa(empresa_id=emp_id, zona_id=zona_id, nombre=nombre_clean, capacidad=capacidad,
+                    forma=forma, posicion_x=px, posicion_y=py,
+                    ancho=tamano[0], alto=tamano[1], estado="libre"))
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        logger.error("Error creando mesa: %s", e, exc_info=True)
+        return RedirectResponse("/mesas?error=Error+al+crear+mesa", 303)
     return RedirectResponse("/mesas", 303)
 
 
