@@ -67,6 +67,7 @@ class NotificationManager {
 
 // Instancia global
 const notify = new NotificationManager();
+window.notify = notify;
 
 // ===================================================================
 // MODAL SYSTEM

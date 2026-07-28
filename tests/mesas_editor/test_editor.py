@@ -32,6 +32,14 @@ class TestCrearMesa:
         m2 = db_session.query(Mesa).filter_by(nombre="E-2").first()
         assert (m1.posicion_x, m1.posicion_y) != (m2.posicion_x, m2.posicion_y)
 
+    def test_crear_mesa_sin_zona_id(self, client_autenticado, db_session):
+        r = client_autenticado.post("/mesas", data={"nombre": "Mesa AutoZona", "capacidad": "4"}, follow_redirects=False)
+        assert r.status_code == 303
+        m = db_session.query(Mesa).filter_by(nombre="Mesa AutoZona").first()
+        assert m is not None
+        assert m.zona_id is not None
+
+
 
 class TestLayout:
     def test_mover_mesa(self, client_autenticado, zona, db_session):

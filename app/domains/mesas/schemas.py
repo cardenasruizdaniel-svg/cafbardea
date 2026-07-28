@@ -112,6 +112,8 @@ class MesaResponse(BaseModel):
     posicion_x: int
     posicion_y: int
     forma: FormaMesa
+    ancho: Optional[int] = 64
+    alto: Optional[int] = 64
     estado: EstadoMesa
     venta_activa: Optional[int] = None  # ID de venta si está ocupada
     numero_personas: Optional[int] = None

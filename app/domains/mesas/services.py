@@ -43,14 +43,21 @@ class MesaService:
             if not zona:
                 raise ValueError(f"Zona {mesa_data.zona_id} no encontrada")
             
+            forma_val = mesa_data.forma.value if hasattr(mesa_data.forma, 'value') else mesa_data.forma
+            ancho = getattr(mesa_data, 'ancho', None) or (96 if forma_val == "rectangular" else 64)
+            alto = getattr(mesa_data, 'alto', None) or (56 if forma_val == "rectangular" else 64)
+
             # Crear mesa
             mesa = Mesa(
+                empresa_id=empresa_id,
                 zona_id=mesa_data.zona_id,
                 nombre=mesa_data.nombre,
                 capacidad=mesa_data.capacidad,
                 posicion_x=mesa_data.posicion_x,
                 posicion_y=mesa_data.posicion_y,
-                forma=mesa_data.forma.value if hasattr(mesa_data.forma, 'value') else mesa_data.forma,
+                forma=forma_val,
+                ancho=ancho,
+                alto=alto,
                 estado="libre"
             )
             

@@ -797,12 +797,33 @@ def eliminar_zona(zona_id: int, request: Request, db: Session = Depends(get_db))
     return RedirectResponse("/mesas", 303)
 
 @app.post("/mesas")
-def crear_mesa(request: Request, zona_id: int = Form(...), nombre: str = Form(...),
+def crear_mesa(request: Request, zona_id: Optional[int] = Form(None), nombre: str = Form(""),
                capacidad: int = Form(4), forma: str = Form("redonda"),
                db: Session = Depends(get_db)):
     exigir_rol(request, "administrador", "gerente")
-    # Posicion inicial escalonada para que las mesas nuevas no queden encimadas.
+    
+    if not zona_id:
+        zona = db.scalar(select(Zona).order_by(Zona.orden))
+        if not zona:
+            zona = Zona(nombre="Zona Principal", orden=1, empresa_id=1)
+            db.add(zona)
+            db.commit()
+            db.refresh(zona)
+        zona_id = zona.id
+    else:
+        zona = db.get(Zona, zona_id)
+        if not zona:
+            zona = Zona(nombre="Zona Principal", orden=1, empresa_id=1)
+            db.add(zona)
+            db.commit()
+            db.refresh(zona)
+            zona_id = zona.id
+
+    nombre_clean = nombre.strip() if nombre else ""
     n = db.scalar(select(func.count(Mesa.id)).where(Mesa.zona_id == zona_id)) or 0
+    if not nombre_clean:
+        nombre_clean = f"Mesa {n + 1}"
+
     px = 8 + (n % 6) * 15
     py = 10 + (n // 6) * 20
     tamano = {"rectangular": (96, 56)}.get(forma, (64, 64))
