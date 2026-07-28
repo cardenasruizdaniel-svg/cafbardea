@@ -337,6 +337,13 @@ class DetalleVenta(Base):
     precio: Mapped[Decimal] = mapped_column(Numeric(14,2))
     nota: Mapped[Optional[str]] = mapped_column(String(250), nullable=True)
     estado_cocina: Mapped[str] = mapped_column(String(20), default="pendiente")
+    # Marca si esta linea ya fue enviada a impresion (comandada). Permite la
+    # impresion incremental: al comandar, solo se imprimen las lineas nuevas
+    # (comandado=False) y luego se marcan como comandadas.
+    comandado: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default=sa_false())
+    comandado_en: Mapped[Optional[datetime]] = mapped_column(
+        DateTime, nullable=True)
     costo_unitario: Mapped[Decimal] = mapped_column(Numeric(14,2), default=0)
     venta: Mapped[Venta] = relationship(back_populates="detalles")
 

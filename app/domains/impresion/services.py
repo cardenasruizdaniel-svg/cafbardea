@@ -16,7 +16,7 @@ from __future__ import annotations
 import logging
 from typing import Optional
 
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.orm import Session
 
 from app.models import GrupoImpresion, Impresora, Producto
@@ -71,6 +71,58 @@ class ImpresionService:
             grupos[clave]["lineas"].append(
                 {"producto": producto.nombre, "cantidad": cantidad})
         return grupos
+
+    def comandar_venta(self, venta_id: int) -> dict:
+        """Comanda una venta imprimiendo SOLO las lineas nuevas (incremental).
+
+        Regla de negocio: al comandar una mesa, se imprimen unicamente los
+        productos agregados desde la ultima vez (comandado=False). Si es la
+        primera comanda, se imprime todo; si ya se habia comandado antes, solo lo
+        nuevo. Las lineas impresas se marcan como comandadas.
+
+        Devuelve {"grupos": {impresora: {...}}, "nuevas": n, "primera": bool}.
+        """
+        from app.models import Venta, DetalleVenta, hora_colombia
+
+        venta = self.db.get(Venta, venta_id)
+        if not venta:
+            raise ValueError("Venta no encontrada")
+
+        # ¿Habia lineas ya comandadas? -> define si es la primera comanda.
+        ya_comandadas = self.db.scalar(
+            select(func.count(DetalleVenta.id)).where(
+                DetalleVenta.venta_id == venta_id,
+                DetalleVenta.comandado.is_(True))) or 0
+        primera = ya_comandadas == 0
+
+        # Lineas nuevas (no comandadas aun).
+        nuevas = self.db.scalars(
+            select(DetalleVenta).where(
+                DetalleVenta.venta_id == venta_id,
+                DetalleVenta.comandado.is_(False))).all()
+
+        if not nuevas:
+            return {"grupos": {}, "nuevas": 0, "primera": primera,
+                    "mensaje": "No hay productos nuevos por comandar"}
+
+        # Agrupar por impresora destino.
+        items = []
+        for d in nuevas:
+            prod = self.db.get(Producto, d.producto_id)
+            if prod:
+                items.append((prod, float(d.cantidad)))
+        grupos = self.agrupar_comanda(items)
+
+        # Marcar como comandadas.
+        ahora = hora_colombia()
+        for d in nuevas:
+            d.comandado = True
+            d.comandado_en = ahora
+        self.db.flush()
+
+        return {"grupos": grupos, "nuevas": len(nuevas), "primera": primera,
+                "mensaje": ("Comanda completa enviada" if primera
+                            else f"{len(nuevas)} producto(s) nuevo(s) enviado(s)")}
 
     # ------------------------------------------------------------------
     # Gestion

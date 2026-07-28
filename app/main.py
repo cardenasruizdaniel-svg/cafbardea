@@ -458,6 +458,8 @@ app.include_router(kds_api_router, tags=["KDS API - FASE 8"])  # FASE 8: Kitchen
 app.include_router(dashboard_api_router)
 from .routes.cliente_api import router as cliente_api_router
 app.include_router(cliente_api_router, tags=["App Cliente"])
+from .routes.mesero_api import router as mesero_api_router
+app.include_router(mesero_api_router, tags=["App Mesero"])
 app.include_router(reportes_api_router)
 
 @app.get("/login", response_class=HTMLResponse)
@@ -921,7 +923,9 @@ def anular_venta(venta_id: int, request: Request, motivo: str = Form(...), db: S
     db.commit(); return {"ok": True}
 
 @app.post("/api/ventas/{venta_id}/pagar")
-def pagar(venta_id:int, medio_pago: str = Form("efectivo"), cliente_id: int | None = Form(None), db:Session=Depends(get_db)):
+def pagar(venta_id:int, request: Request, medio_pago: str = Form("efectivo"), cliente_id: int | None = Form(None), db:Session=Depends(get_db)):
+    # Solo caja (cajero), gerente o administrador pueden cobrar. El mesero NO.
+    exigir_rol(request, "cajero", "gerente")
     venta=db.get(Venta,venta_id)
     if not venta or venta.estado!="abierta": raise HTTPException(404)
     if medio_pago == "credito":

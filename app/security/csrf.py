@@ -27,7 +27,7 @@ METODOS_SEGUROS = {"GET", "HEAD", "OPTIONS", "TRACE"}
 
 # Rutas exentas (no usan cookie de sesion o no cambian estado de negocio).
 EXENTAS = {"/login", "/logout"}
-EXENTAS_PREFIJO = ("/api/v1/mobile/", "/api/v1/kds/", "/api/cliente")
+EXENTAS_PREFIJO = ("/api/v1/mobile/", "/api/v1/kds/", "/api/cliente", "/api/mesero")
 
 
 class CSRFMiddleware(BaseHTTPMiddleware):

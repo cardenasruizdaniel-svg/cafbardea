@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0f6b4a">
+<title>Comanda {{ mesa.nombre }} · Mesero</title>
+<style>
+  :root { --verde:#0f6b4a; --verde-claro:#16a34a; --bg:#f4f6f8; --carbon:#1a2233; --borde:#e3e8ee; }
+  * { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+  body { font-family:-apple-system,"Segoe UI",Roboto,sans-serif; background:var(--bg); color:var(--carbon); padding-bottom:170px; }
+  header { background:linear-gradient(135deg,var(--verde),var(--verde-claro)); color:#fff; padding:16px; position:sticky; top:0; z-index:10; display:flex; justify-content:space-between; align-items:center; }
+  header h1 { font-size:19px; }
+  header .volver { color:#fff; text-decoration:none; font-size:22px; }
+  .buscador { width:calc(100% - 24px); margin:12px; padding:12px 14px; border:1px solid var(--borde); border-radius:12px; font-size:15px; }
+  .cat-titulo { font-size:12px; font-weight:800; text-transform:uppercase; color:var(--verde); margin:12px 16px 6px; letter-spacing:.05em; }
+  .producto { display:flex; justify-content:space-between; align-items:center; background:#fff; margin:6px 12px; padding:12px 14px; border-radius:12px; border:1px solid var(--borde); }
+  .producto h3 { font-size:15px; }
+  .producto .precio { color:var(--verde); font-weight:700; font-size:13px; }
+  .add-btn { width:38px; height:38px; border-radius:50%; border:none; background:var(--verde); color:#fff; font-size:22px; cursor:pointer; }
+  .add-btn:active { transform:scale(.9); }
+  /* comanda actual */
+  .comanda-panel { position:fixed; bottom:56px; left:0; right:0; background:#fff; border-top:2px solid var(--verde); max-height:45vh; overflow-y:auto; box-shadow:0 -4px 16px rgba(0,0,0,.08); }
+  .comanda-header { padding:10px 16px; font-weight:700; display:flex; justify-content:space-between; border-bottom:1px solid var(--borde); position:sticky; top:0; background:#fff; }
+  .linea { display:flex; justify-content:space-between; align-items:center; padding:8px 16px; font-size:14px; border-bottom:1px solid #f2f4f6; }
+  .linea.comandado { opacity:.6; }
+  .linea .badge-c { font-size:10px; background:#e7f3ee; color:var(--verde); padding:2px 6px; border-radius:6px; margin-left:6px; }
+  .quitar { border:none; background:#fecaca; color:#7f1d1d; border-radius:6px; padding:3px 8px; cursor:pointer; font-size:12px; }
+  .acciones { position:fixed; bottom:0; left:0; right:0; display:flex; background:#fff; border-top:1px solid var(--borde); }
+  .btn-comandar { flex:2; background:var(--verde); color:#fff; border:none; padding:16px; font-size:16px; font-weight:800; cursor:pointer; }
+  .btn-comandar:disabled { background:#cbd5c8; }
+  .btn-volver { flex:1; background:#fff; color:var(--verde); border:none; border-right:1px solid var(--borde); font-weight:700; cursor:pointer; }
+  .toast { position:fixed; bottom:200px; left:50%; transform:translateX(-50%); background:var(--verde); color:#fff; padding:12px 20px; border-radius:12px; z-index:100; display:none; }
+  .nota-cobro { padding:8px 16px; font-size:12px; color:#7a8494; text-align:center; }
+</style>
+</head>
+<body>
+<header>
+  <a class="volver" href="/mobile/mesas">‹</a>
+  <h1>Mesa {{ mesa.nombre }}</h1>
+  <span></span>
+</header>
+
+<input type="text" class="buscador" id="buscador" placeholder="Buscar producto...">
+<div id="catalogo"></div>
+
+<div class="comanda-panel">
+  <div class="comanda-header">
+    <span>Comanda</span>
+    <span id="total-comanda">${{ '{:,.0f}'.format(total) }}</span>
+  </div>
+  <div id="lineas"></div>
+  <p class="nota-cobro">El cobro y la liberación de la mesa los hace la caja.</p>
+</div>
+
+<div class="acciones">
+  <button class="btn-volver" onclick="location.href='/mobile/mesas'">Mesas</button>
+  <button class="btn-comandar" id="btn-comandar" onclick="comandar()">Comandar</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const MESA_ID = {{ mesa.id }};
+  let VENTA_ID = {{ venta_id or 'null' }};
+  const productos = {{ productos|tojson }};
+  let lineas = {{ lineas|tojson }};
+
+  function renderCatalogo(filtro='') {
+    const cont = document.getElementById('catalogo');
+    const lista = productos.filter(p => p.nombre.toLowerCase().includes(filtro.toLowerCase()));
+    const porCat = {};
+    lista.forEach(p => { (porCat[p.categoria] = porCat[p.categoria]||[]).push(p); });
+    let html = '';
+    for (const cat in porCat) {
+      html += `<div class="cat-titulo">${cat}</div>`;
+      porCat[cat].forEach(p => {
+        html += `<div class="producto"><div><h3>${p.nombre}</h3><span class="precio">$${p.precio.toLocaleString('es-CO')}</span></div>
+          <button class="add-btn" onclick="agregar(${p.id})">+</button></div>`;
+      });
+    }
+    cont.innerHTML = html;
+  }
+
+  function renderLineas() {
+    const cont = document.getElementById('lineas');
+    if (!lineas.length) { cont.innerHTML = '<p style="padding:16px;color:#999;text-align:center">Aún no hay productos</p>'; return; }
+    cont.innerHTML = lineas.map(l => `
+      <div class="linea ${l.comandado?'comandado':''}">
+        <span>${l.cantidad}× ${l.producto}${l.comandado?'<span class="badge-c">comandado</span>':''}</span>
+        ${l.comandado?'':`<button class="quitar" onclick="quitar(${l.id})">Quitar</button>`}
+      </div>`).join('');
+  }
+
+  async function agregar(productoId) {
+    const r = await fetch(`/api/mesero/mesa/${MESA_ID}/agregar`, {
+      method:'POST', headers:{'Content-Type':'application/json'}, credentials:'same-origin',
+      body: JSON.stringify({producto_id: productoId, cantidad: 1})
+    });
+    if (r.ok) { const d = await r.json(); VENTA_ID = d.venta_id; await recargar(); }
+    else toast('No se pudo agregar');
+  }
+
+  async function quitar(detalleId) {
+    const r = await fetch(`/api/mesero/mesa/${MESA_ID}/item/${detalleId}/quitar`, {
+      method:'POST', credentials:'same-origin'
+    });
+    if (r.ok) await recargar();
+    else { const d = await r.json(); toast(d.detail || 'No se pudo quitar'); }
+  }
+
+  async function comandar() {
+    const btn = document.getElementById('btn-comandar');
+    btn.disabled = true;
+    const r = await fetch(`/api/mesero/mesa/${MESA_ID}/comandar`, {
+      method:'POST', credentials:'same-origin'
+    });
+    const d = await r.json();
+    btn.disabled = false;
+    if (r.ok) { toast('✅ ' + d.mensaje); await recargar(); }
+    else toast(d.detail || 'No se pudo comandar');
+  }
+
+  async function recargar() {
+    // recargar las líneas y total desde el servidor
+    const r = await fetch(`/mobile/comanda/${MESA_ID}`, {credentials:'same-origin'});
+    const html = await r.text();
+    const m = html.match(/let lineas = (\[.*?\]);/s);
+    const t = html.match(/id="total-comanda">([^<]+)</);
+    if (m) { lineas = JSON.parse(m[1]); renderLineas(); }
+    if (t) document.getElementById('total-comanda').textContent = t[1];
+  }
+
+  function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.style.display = 'block';
+    setTimeout(() => t.style.display = 'none', 2500);
+  }
+
+  document.getElementById('buscador').addEventListener('input', e => renderCatalogo(e.target.value));
+  renderCatalogo();
+  renderLineas();
+</script>
+</body>
+</html>

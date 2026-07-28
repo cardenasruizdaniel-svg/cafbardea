@@ -1845,3 +1845,62 @@ crear zona desaparecera sin intervencion manual.
 - Separar modulo de meseros (que no mande a la ventana de mesas de la web).
 - Modulos independientes con identidad propia (mesero, cliente, gerencial, web).
 - Motor de reconocimiento facial (fuera de este entorno).
+
+
+---
+
+# Paso 31: Separacion del modulo de meseros + impresion incremental
+
+El usuario reporto que la app de meseros, en el boton de mesas, enviaba a la
+ventana de mesas de la WEB (gestion) en vez de tener su propio modulo. Se
+construyo un modulo propio del mesero y la impresion incremental de comandas.
+
+## Decisiones del usuario
+
+1. El modulo de mesas del mesero: plano visual como la web, pero optimizado para
+   tactil/celular.
+2. Al tocar una mesa: abre la comanda para tomar el pedido de una vez.
+3. Impresion incremental: al comandar solo se imprimen los ULTIMOS productos
+   agregados. Primera comanda -> todo; si ya habia comandados -> solo los nuevos.
+4. El mesero NO puede cobrar ni liberar la mesa; solo el cajero en caja.
+
+## Que se construyo
+
+**Modulo propio del mesero** (routes/mesero_api.py):
+  - GET /mobile/mesas: plano de mesas del mesero, por zona, tactil, con su propia
+    identidad visual (verde, tarjetas grandes, estados con color). NO es la web.
+  - GET /mobile/comanda/{mesa}: pantalla para tomar el pedido (catalogo con
+    buscador, botones + grandes, panel de comanda).
+  - POST /api/mesero/mesa/{id}/agregar: agrega producto (abre venta si no hay).
+  - POST /api/mesero/mesa/{id}/comandar: comanda con impresion incremental.
+  - POST /api/mesero/mesa/{id}/item/{detalle}/quitar: quita item NO comandado
+    (los ya comandados no se pueden quitar; eso lo hace caja).
+  - La app movil (mobile_dashboard) ahora enlaza a /mobile/mesas, no a /mesas.
+
+**Impresion incremental** (ImpresionService.comandar_venta):
+  - Nuevo campo DetalleVenta.comandado (+ comandado_en) marca lo ya enviado.
+  - Primera comanda: imprime todo. Re-comandar: solo lo nuevo. Sin cambios: nada.
+  - Probado: primera=4 productos, luego +1=1 nuevo, luego 0 sin cambios.
+
+**Regla de negocio (mesero no cobra)**:
+  - La ruta /api/ventas/{id}/pagar NO tenia verificacion de rol (hueco de
+    seguridad). Se agrego exigir_rol(cajero, gerente) [admin siempre pasa].
+  - Verificado: mesero -> 403; cajero -> cobra OK; admin -> OK.
+  - La liberacion de mesa ocurre como efecto del cobro (ya protegido).
+
+## Verificacion
+
+- Flujo completo end-to-end como mesero: ver plano propio, tomar pedido,
+  comandar (incremental), y bloqueo sin sesion (401).
+- Regla de cobro: probada por rol directamente y via API.
+- Revision VISUAL con capturas reales en viewport de celular (390px): plano y
+  comanda se ven bien, tactiles, con identidad propia.
+- Suite: 539 aciertos, 0 fallos (532 previos + 7 nuevos).
+- Migracion 0016 idempotente (detalle_ventas.comandado/comandado_en); cadena
+  0001->0016 desde vacio (16); ciclo downgrade+upgrade.
+
+## Lo que sigue
+
+- Modulos independientes con identidad propia (mesero hecho; faltan gerencial y
+  afinar cliente/web como modulos con esencia propia).
+- Motor de reconocimiento facial (fuera de este entorno).
