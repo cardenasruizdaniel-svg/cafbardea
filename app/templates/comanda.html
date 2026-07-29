@@ -1,117 +1,173 @@
 {% extends "base.html" %}
 {% block content %}
 <style>
-  /* Estilos de alto contraste para el panel de comanda y facturación */
+  /* Estilos de alto contraste y tema claro para el módulo de comanda y facturación */
+  .pos {
+    display: grid;
+    grid-template-columns: minmax(0, 1.8fr) minmax(320px, 1fr);
+    gap: 24px;
+    align-items: start;
+  }
+  .products-panel {
+    background: #ffffff;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 18px;
+    padding: 20px;
+    box-shadow: 0 10px 25px rgba(15, 23, 42, 0.04);
+  }
+  .products-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: 12px;
+    margin-top: 14px;
+  }
+  .product-btn {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    border: 1.5px solid #cbd5e1 !important;
+    border-radius: 14px !important;
+    padding: 16px !important;
+    text-align: left;
+    min-height: 100px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03) !important;
+    transition: all 0.18s ease-in-out !important;
+    cursor: pointer;
+  }
+  .product-btn:hover {
+    border-color: #0f6b4a !important;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 18px rgba(15, 107, 74, 0.12) !important;
+    background: #f0fdf4 !important;
+  }
+  .product-btn span {
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    color: #0f172a !important;
+    line-height: 1.25;
+  }
+  .product-btn b {
+    color: #0f6b4a !important;
+    font-size: 17px !important;
+    font-weight: 800 !important;
+  }
   .ticket {
     position: sticky;
     top: 24px;
-    background: #18181b !important;
-    color: #f4f4f5 !important;
-    border: 1px solid #3f3f46 !important;
-    border-radius: 16px;
-    padding: 22px;
-    box-shadow: 0 18px 35px rgba(0, 0, 0, 0.4);
+    background: #ffffff !important;
+    color: #0f172a !important;
+    border: 1.5px solid #cbd5e1 !important;
+    border-radius: 18px;
+    padding: 24px;
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
   }
   .ticket h2 {
-    color: #ffffff !important;
-    font-size: 18px;
-    font-weight: 700;
-    margin-bottom: 12px;
+    color: #0f172a !important;
+    font-size: 19px;
+    font-weight: 800;
+    margin-bottom: 14px;
+    letter-spacing: -0.3px;
   }
   .ticket p {
-    color: #e4e4e7 !important;
+    color: #475569 !important;
     font-size: 14px;
   }
-  .ticket span {
-    color: #f4f4f5 !important;
-  }
-  .ticket div {
+  .ticket .line-item {
     display: flex;
     justify-content: space-between;
+    align-items: center;
     gap: 10px;
-    padding: 10px 0;
-    border-bottom: 1px dashed #3f3f46 !important;
-    color: #f4f4f5 !important;
+    padding: 11px 0;
+    border-bottom: 1px solid #f1f5f9;
+    color: #0f172a !important;
   }
-  .ticket div span {
-    color: #f4f4f5 !important;
+  .ticket .line-item span {
+    color: #0f172a !important;
     font-size: 14px;
-    font-weight: 500;
+    font-weight: 600;
   }
-  .ticket div b {
-    color: #fbbf24 !important;
-    font-size: 15px;
-    font-weight: 700;
+  .ticket .line-item b {
+    color: #0f6b4a !important;
+    font-size: 16px;
+    font-weight: 800;
   }
   .ticket label {
     display: grid;
     gap: 6px;
-    color: #e4e4e7 !important;
+    color: #334155 !important;
     font-size: 13px;
-    font-weight: 600;
-    margin: 10px 0;
+    font-weight: 700;
+    margin: 12px 0;
   }
   .ticket input, .ticket select {
-    background: #27272a !important;
-    color: #ffffff !important;
-    border: 1px solid #52525b !important;
-    border-radius: 8px;
+    background: #f8fafc !important;
+    color: #0f172a !important;
+    border: 1.5px solid #cbd5e1 !important;
+    border-radius: 10px;
     padding: 10px 12px;
     font-size: 14px;
     font-weight: 600;
   }
-  .ticket input::placeholder {
-    color: #a1a1aa !important;
+  .ticket input:focus, .ticket select:focus {
+    border-color: #0f6b4a !important;
+    box-shadow: 0 0 0 3px rgba(15, 107, 74, 0.12) !important;
   }
   .ticket summary {
     cursor: pointer;
-    color: #fbbf24 !important;
+    color: #0f6b4a !important;
     font-weight: 700;
     font-size: 13px;
   }
   .ticket .pay {
     width: 100%;
-    margin-top: 14px;
-    background: linear-gradient(135deg, #16a34a, #15803d) !important;
+    margin-top: 16px;
+    background: linear-gradient(135deg, #0f6b4a, #16a34a) !important;
     color: #ffffff !important;
     font-size: 16px;
     font-weight: 800;
-    padding: 14px;
+    padding: 15px;
     border-radius: 12px;
-    box-shadow: 0 6px 16px rgba(22, 163, 74, 0.4);
+    border: none;
+    box-shadow: 0 8px 20px rgba(15, 107, 74, 0.3);
     cursor: pointer;
+    transition: transform 0.15s, filter 0.15s;
   }
   .ticket .pay:hover {
-    filter: brightness(1.1);
+    filter: brightness(1.06);
+    transform: translateY(-1px);
   }
 </style>
 
 <header>
   <div>
     <p class="eyebrow">{{ mesa.zona.nombre|upper }}</p>
-    <h1>Comanda · {{ mesa.nombre }} <span style="font-size:14px; font-weight:600; padding:3px 10px; border-radius:12px; background:#3f3f46; color:#fbbf24;">{{ mesa.estado|upper }}</span></h1>
+    <h1>Comanda · {{ mesa.nombre }} <span style="font-size:14px; font-weight:700; padding:4px 12px; border-radius:12px; background:#e2e8f0; color:#0f6b4a;">{{ mesa.estado|upper }}</span></h1>
   </div>
   <a href="/mesas" class="button secondary">← Plano de mesas</a>
 </header>
 
 <div class="pos">
   <!-- Selección de productos -->
-  <section class="products">
-    <h2>Agregar producto</h2>
-    {% for p in productos %}
-    <button class="product" onclick="add({{ p.id }})">
-      <span>{{ p.nombre }}</span>
-      <b>${{ '{:,.0f}'.format(p.precio_venta) }}</b>
-    </button>
-    {% endfor %}
+  <section class="products-panel">
+    <h2 style="font-size:18px; font-weight:800; color:#0f172a; margin-bottom:12px;">Agregar producto</h2>
+    <div class="products-grid">
+      {% for p in productos %}
+      <button class="product-btn" onclick="add({{ p.id }})">
+        <span>{{ p.nombre }}</span>
+        <b>${{ '{:,.0f}'.format(p.precio_venta) }}</b>
+      </button>
+      {% endfor %}
+    </div>
   </section>
 
-  <!-- Panel lateral de Pedido / Facturación -->
+  <!-- Panel lateral de Pedido / Facturación (Tarjeta Clara) -->
   <aside class="ticket">
     <h2>Pedido actual</h2>
     {% if venta %}
       {% for d in venta.detalles %}
-      <div>
+      <div class="line-item">
         <span>{{ d.cantidad }} × {{ d.producto.nombre if d.producto else ('producto #' ~ d.producto_id) }}</span>
         <b>${{ '{:,.0f}'.format(d.precio * d.cantidad) }} 
           <button style="padding:0 6px; background:transparent; border:none; box-shadow:none; color:#ef4444; font-size:18px; cursor:pointer;" title="Eliminar ítem" onclick="removeItem({{ venta.id }}, {{ d.id }})">✕</button>
@@ -119,7 +175,7 @@
       </div>
       {% endfor %}
       
-      <hr style="border:0; border-top:1px solid #3f3f46; margin:16px 0;">
+      <hr style="border:0; border-top:1px solid #e2e8f0; margin:16px 0;">
       
       <!-- Ajustes de descuento / propina / impuesto -->
       <form class="stack compact" onsubmit="return ajustes(event, {{ venta.id }})">
@@ -135,15 +191,15 @@
         <button class="secondary" style="margin-top:6px; width:100%;">Aplicar ajustes</button>
       </form>
       
-      <p style="margin-top:12px; font-size:13px; color:#d4d4d8 !important;">
-        Subtotal: <strong>${{ '{:,.0f}'.format(venta.subtotal) }}</strong> · Impuesto: <strong>${{ '{:,.0f}'.format(venta.impuesto) }}</strong>
+      <p style="margin-top:14px; font-size:14px; color:#475569 !important;">
+        Subtotal: <strong style="color:#0f172a;">${{ '{:,.0f}'.format(venta.subtotal) }}</strong> · Impuesto: <strong style="color:#0f172a;">${{ '{:,.0f}'.format(venta.impuesto) }}</strong>
       </p>
-      <h2 style="font-size:22px; color:#fbbf24 !important; margin-top:8px;">Total: $<span id="total">{{ '{:,.0f}'.format(venta.total) }}</span></h2>
+      <h2 style="font-size:24px; color:#0f6b4a !important; margin-top:8px;">Total: $<span id="total">{{ '{:,.0f}'.format(venta.total) }}</span></h2>
       
       <!-- Operaciones avanzadas -->
-      <details style="margin:14px 0; padding:10px; border:1px solid #3f3f46; border-radius:9px; background:#27272a;">
-        <summary style="cursor:pointer; color:#fbbf24; font-size:13px; font-weight:700;">⚙️ Operaciones de mesa</summary>
-        <div style="display:grid; gap:7px; margin-top:10px;">
+      <details style="margin:14px 0; padding:12px; border:1.5px solid #cbd5e1; border-radius:12px; background:#f8fafc;">
+        <summary style="cursor:pointer; color:#0f6b4a; font-size:13px; font-weight:700;">⚙️ Operaciones de mesa</summary>
+        <div style="display:grid; gap:8px; margin-top:10px;">
           <label style="margin:0;">Trasladar a otra mesa
             <select id="mesa-destino">
               {% for m in mesas_destino %}
@@ -152,7 +208,7 @@
             </select>
           </label>
           <button class="secondary" onclick="transfer({{ venta.id }})">Trasladar / fusionar</button>
-          <button style="background:#dc2626 !important; color:#fff; border:none; margin-top:4px;" onclick="cancel({{ venta.id }})">Anular comanda</button>
+          <button style="background:#dc2626 !important; color:#fff; border:none; padding:10px; border-radius:8px; cursor:pointer;" onclick="cancel({{ venta.id }})">Anular comanda</button>
         </div>
       </details>
 
@@ -177,7 +233,7 @@
       <button class="pay" onclick="pay({{ venta.id }})">💳 Facturar y cerrar cuenta (Pasa a Limpieza)</button>
 
     {% else %}
-      <p style="padding:20px 0; text-align:center; color:#a1a1aa !important;">No hay productos cargados en esta mesa.</p>
+      <p style="padding:24px 0; text-align:center; color:#64748b !important; font-size:15px;">No hay productos cargados en esta mesa.</p>
       
       <!-- Acciones de estado cuando no hay pedido -->
       <div style="display:grid; gap:8px; margin-top:16px;">
@@ -206,27 +262,40 @@
 </div>
 
 <script>
+  const csrfToken = '{{ csrf_token }}';
   const medio = document.getElementById('medio');
   if (medio) {
     medio.onchange = () => document.getElementById('cliente-wrap').hidden = (medio.value !== 'credito');
   }
 
   async function add(id) {
-    await fetch('/api/comanda/{{ mesa.id }}/items', {
-      method: 'POST',
-      body: new URLSearchParams({ producto_id: id, cantidad: 1 })
-    });
-    location.reload();
+    try {
+      const r = await fetch('/api/comanda/{{ mesa.id }}/items', {
+        method: 'POST',
+        headers: { 'X-CSRF-Token': csrfToken },
+        body: new URLSearchParams({ producto_id: id, cantidad: 1, csrf_token: csrfToken })
+      });
+      if (r.ok) {
+        location.reload();
+      } else {
+        const j = await r.json();
+        alert(j.detail || 'Error al agregar producto');
+      }
+    } catch (e) {
+      alert('Error de conexión');
+    }
   }
 
   async function ajustes(e, id) {
     e.preventDefault();
     let r = await fetch('/api/ventas/' + id + '/ajustes', {
       method: 'POST',
+      headers: { 'X-CSRF-Token': csrfToken },
       body: new URLSearchParams({
         descuento: descuento.value || 0,
         propina: propina.value || 0,
-        impuesto: impuesto.value || 0
+        impuesto: impuesto.value || 0,
+        csrf_token: csrfToken
       })
     });
     let j = await r.json();
@@ -237,7 +306,11 @@
 
   async function removeItem(v, d) {
     if (confirm('¿Eliminar este producto?')) {
-      let r = await fetch('/api/ventas/' + v + '/items/' + d + '/eliminar', { method: 'POST' });
+      let r = await fetch('/api/ventas/' + v + '/items/' + d + '/eliminar', {
+        method: 'POST',
+        headers: { 'X-CSRF-Token': csrfToken },
+        body: new URLSearchParams({ csrf_token: csrfToken })
+      });
       if (r.ok) location.reload();
       else alert((await r.json()).detail);
     }
@@ -248,7 +321,8 @@
     if (!m) return;
     let r = await fetch('/api/ventas/' + id + '/trasladar', {
       method: 'POST',
-      body: new URLSearchParams({ mesa_destino_id: m })
+      headers: { 'X-CSRF-Token': csrfToken },
+      body: new URLSearchParams({ mesa_destino_id: m, csrf_token: csrfToken })
     });
     let j = await r.json();
     if (!r.ok) { alert(j.detail); return; }
@@ -260,7 +334,8 @@
     if (!motivo) return;
     let r = await fetch('/api/ventas/' + id + '/anular', {
       method: 'POST',
-      body: new URLSearchParams({ motivo })
+      headers: { 'X-CSRF-Token': csrfToken },
+      body: new URLSearchParams({ motivo: motivo, csrf_token: csrfToken })
     });
     if (!r.ok) { alert((await r.json()).detail); return; }
     location.href = '/mesas';
@@ -270,9 +345,14 @@
     if (confirm('¿Confirmar facturación? La mesa pasará al estado Limpieza.')) {
       let data = new URLSearchParams({
         medio_pago: medio.value,
-        cliente_id: document.getElementById('cliente') ? document.getElementById('cliente').value : ''
+        cliente_id: document.getElementById('cliente') ? document.getElementById('cliente').value : '',
+        csrf_token: csrfToken
       });
-      let r = await fetch('/api/ventas/' + id + '/pagar', { method: 'POST', body: data });
+      let r = await fetch('/api/ventas/' + id + '/pagar', {
+        method: 'POST',
+        headers: { 'X-CSRF-Token': csrfToken },
+        body: data
+      });
       let j = await r.json();
       if (!r.ok) { alert(j.detail); return; }
       location.href = j.factura_url;
