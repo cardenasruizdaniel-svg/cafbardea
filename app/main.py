@@ -123,6 +123,35 @@ def _quiere_json(request: Request) -> bool:
     return ruta.startswith("/api/") or "application/json" in acepta
 
 
+from fastapi.exceptions import RequestValidationError
+
+@app.exception_handler(RequestValidationError)
+async def manejar_error_validacion(request: Request, exc: RequestValidationError):
+    logger.warning("Error de validacion en %s: %s", request.url.path, exc)
+    if _quiere_json(request):
+        return JSONResponse({"detail": exc.errors()}, status_code=422)
+    referer = request.headers.get("referer") or "/dashboard"
+    try:
+        from .database import SessionLocal as _SLE
+        _edb = _SLE()
+        try:
+            ctx = context(request, _edb)
+        finally:
+            _edb.close()
+    except Exception:
+        ctx = {"request": request, "empresa": Empresa(id=1, nombre="CafBarDLA", nit="900.000.000-1"),
+               "usuario": {"id": 1, "nombre": "Usuario", "rol": "administrador"}}
+
+    return templates.TemplateResponse(
+        request, "error.html",
+        ctx | {"codigo": 400,
+               "titulo": "Formulario incompleto o inválido",
+               "mensaje": "Por favor verifique los campos del formulario e intente nuevamente.",
+               "referer": referer,
+               "referencia": None},
+        status_code=400)
+
+
 @app.exception_handler(StarletteHTTPException)
 async def manejar_http_exception(request: Request, exc: StarletteHTTPException):
     # 401/403/404 y demas: respuesta JSON para API, pagina para navegador.
@@ -841,7 +870,7 @@ def _obtener_empresa_id(db: Session, request: Optional[Request] = None) -> int:
 
 
 @app.post("/zonas")
-def crear_zona(request: Request, nombre: str = Form(...),
+def crear_zona(request: Request, nombre: str = Form(""),
                db: Session = Depends(get_db)):
     exigir_rol(request, "administrador", "gerente")
     try:

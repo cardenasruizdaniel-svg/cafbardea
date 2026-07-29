@@ -38,7 +38,7 @@
     </div>
 
     {% if referencia or detalle_tecnico %}
-    <details>
+    <details open>
       <summary>🔍 Detalle técnico del error{% if referencia %} (Ref: {{ referencia }}){% endif %}</summary>
       <pre>{% if detalle_tecnico %}{{ detalle_tecnico }}{% else %}Referencia del error: {{ referencia }}{% endif %}</pre>
     </details>
