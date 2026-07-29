@@ -1,67 +1,47 @@
 @echo off
 REM ============================================================
-REM  CafBarDLA POS - Launcher
-REM  Inicia la aplicación FastAPI
+REM  CFBARDLA Enterprise POS - Servidor Local Windows
 REM ============================================================
 
 setlocal enabledelayedexpansion
-color 0B
+color 0A
 
 cd /d "%~dp0"
 
-REM Verificar si el entorno virtual existe
-if not exist ".buildenv" (
+REM Activar entorno virtual si existe
+if exist ".venv\Scripts\activate.bat" (
+    call .venv\Scripts\activate.bat
+) else if exist ".buildenv\Scripts\activate.bat" (
+    call .buildenv\Scripts\activate.bat
+) else (
     echo.
-    echo [ERROR] Entorno virtual no encontrado.
-    echo Por favor, ejecuta primero el instalador: CafBarDLA-Installer.bat
+    echo [INFORMACION] Entorno virtual no detectado. Usando Python global del sistema...
     echo.
-    pause
-    exit /b 1
 )
 
 cls
 
 echo.
 echo ============================================================
-echo     CafBarDLA POS - Servidor FastAPI
-echo     Versión 0.1.0
+echo     CFBARDLA Enterprise POS - Servidor Local Windows
 echo ============================================================
 echo.
-echo Iniciando aplicación...
+echo Iniciando servidor operativo local...
 echo.
-
-REM Activar entorno virtual
-call .buildenv\Scripts\activate.bat
-
-REM Iniciar servidor FastAPI
+echo Acceso LOCAL (Este equipo):
+echo   Web POS: http://localhost:8000
+echo   App Movil Meseros: http://localhost:8000/mobile
 echo.
-echo ============================================================
-echo  SERVIDOR INICIADO
-echo ============================================================
-echo.
-echo Acceso LOCAL:
-echo   Web: http://localhost:8000
-echo   API Docs: http://localhost:8000/docs
-echo.
-echo Acceso REMOTO (desde tablet/móvil):
-echo   1. Obtén la IP de este PC: ipconfig
-echo   2. En dispositivo móvil abre: http://IP-DEL-PC:8000
-echo   3. Ejemplo: http://192.168.1.100:8000
+echo Acceso RED LOCAL (Moviles / Tablets / Comanderas en la misma WiFi):
+echo   1. Obtener la IP de este equipo ejecutando: ipconfig
+echo   2. Abrir en el navegador de la tablet/celular: http://IP-DEL-EQUIPO:8000/mobile
 echo.
 echo ============================================================
-echo.
-echo Usuario: admin
-echo Contraseña: admin
 echo.
 echo Para detener el servidor: Presiona CTRL+C
 echo.
 echo ============================================================
 echo.
 
-REM Iniciar servidor con Uvicorn
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
-
-echo.
-echo Servidor detenido.
-echo.
+uvicorn app.main:app --host 0.0.0.0 --port 8000
 pause
