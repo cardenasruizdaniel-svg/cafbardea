@@ -1,58 +1,304 @@
-{% extends "base.html" %}{% block content %}<header><div><p class="eyebrow">{{mesa.zona.nombre|upper}}</p><h1>Comanda · {{mesa.nombre}}</h1></div><a href="/mesas">← Plano</a></header><div class="pos"><section class="products"><h2>Agregar producto</h2>{%for p in productos%}<button class="product" onclick="add({{p.id}})"><span>{{p.nombre}}</span><b>${{'{:,.0f}'.format(p.precio_venta)}}</b></button>{%endfor%}</section><aside class="ticket"><h2>Pedido actual</h2>{%if venta%}{%for d in venta.detalles%}<div><span>{{d.cantidad}} × producto #{{d.producto_id}}</span><b>${{'{:,.0f}'.format(d.precio*d.cantidad)}} <button style="padding:0 5px;background:transparent;box-shadow:none;color:#fca5a5;font-size:19px" title="Eliminar ítem" onclick="removeItem({{venta.id}},{{d.id}})">×</button></b></div>{%endfor%}<hr><form class="stack compact" onsubmit="return ajustes(event,{{venta.id}})"><input id="descuento" type="number" min="0" step="0.01" value="{{venta.descuento}}" placeholder="Descuento"><input id="propina" type="number" min="0" step="0.01" value="{{venta.propina}}" placeholder="Propina"><input id="impuesto" type="number" min="0" step="0.01" value="{{venta.impuesto}}" placeholder="Impuesto"><button class="secondary">Aplicar ajustes</button></form><p>Subtotal: ${{'{:,.0f}'.format(venta.subtotal)}} · Impuesto: ${{'{:,.0f}'.format(venta.impuesto)}}</p><h2>Total $<span id="total">{{'{:,.0f}'.format(venta.total)}}</span></h2><details style="margin:14px 0;padding:10px;border:1px solid #57534e;border-radius:9px"><summary style="cursor:pointer;color:#d6d3d1;font-size:13px">Operaciones de mesa</summary><div style="display:grid;gap:7px;margin-top:10px"><select id="mesa-destino">{%for m in mesas_destino%}<option value="{{m.id}}">{{m.nombre}} · {{m.zona.nombre}}</option>{%endfor%}</select><button class="secondary" onclick="transfer({{venta.id}})">Trasladar / fusionar</button><button style="background:#b91c1c;box-shadow:none" onclick="cancel({{venta.id}})">Anular comanda</button></div></details><label>Medio de pago<select id="medio"><option value="efectivo">Efectivo</option><option value="tarjeta">Tarjeta</option><option value="transferencia">Transferencia</option><option value="credito">Crédito</option></select></label><label id="cliente-wrap" hidden>Cliente<select id="cliente">{%for c in clientes%}<option value="{{c.id}}">{{c.nombre}}</option>{%endfor%}</select></label><button class="pay" onclick="pay({{venta.id}})">Facturar y cerrar mesa</button>{%else%}<p>Aún no hay productos.</p>{%endif%}</aside></div><script>const medio=document.getElementById('medio');if(medio)medio.onchange=()=>document.getElementById('cliente-wrap').hidden=medio.value!=='credito';async function add(id){await fetch('/api/comanda/{{mesa.id}}/items',{method:'POST',body:new URLSearchParams({producto_id:id,cantidad:1})});location.reload()}async function ajustes(e,id){e.preventDefault();let r=await fetch('/api/ventas/'+id+'/ajustes',{method:'POST',body:new URLSearchParams({descuento:descuento.value||0,propina:propina.value||0,impuesto:impuesto.value||0})});let j=await r.json();if(!r.ok){alert(j.detail);return false}location.reload();return false}async function removeItem(v,d){if(confirm('¿Eliminar este producto?')){let r=await fetch('/api/ventas/'+v+'/items/'+d+'/eliminar',{method:'POST'});if(r.ok)location.reload();else alert((await r.json()).detail)}}async function transfer(id){let m=document.getElementById('mesa-destino').value;if(!m)return;let r=await fetch('/api/ventas/'+id+'/trasladar',{method:'POST',body:new URLSearchParams({mesa_destino_id:m})});let j=await r.json();if(!r.ok){alert(j.detail);return}location.href='/comanda/'+j.destino}async function cancel(id){let motivo=prompt('Motivo de anulación:');if(!motivo)return;let r=await fetch('/api/ventas/'+id+'/anular',{method:'POST',body:new URLSearchParams({motivo})});if(!r.ok){alert((await r.json()).detail);return}location.href='/mesas'}async function pay(id){if(confirm('¿Confirmar facturación?')){let data=new URLSearchParams({medio_pago:medio.value,cliente_id:document.getElementById('cliente').value});let r=await fetch('/api/ventas/'+id+'/pagar',{method:'POST',body:data});let j=await r.json();if(!r.ok){alert(j.detail);return}location.href=j.factura_url}}
+{% extends "base.html" %}
+{% block content %}
+<style>
+  /* Estilos de alto contraste para el panel de comanda y facturación */
+  .ticket {
+    position: sticky;
+    top: 24px;
+    background: #18181b !important;
+    color: #f4f4f5 !important;
+    border: 1px solid #3f3f46 !important;
+    border-radius: 16px;
+    padding: 22px;
+    box-shadow: 0 18px 35px rgba(0, 0, 0, 0.4);
+  }
+  .ticket h2 {
+    color: #ffffff !important;
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 12px;
+  }
+  .ticket p {
+    color: #e4e4e7 !important;
+    font-size: 14px;
+  }
+  .ticket span {
+    color: #f4f4f5 !important;
+  }
+  .ticket div {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px dashed #3f3f46 !important;
+    color: #f4f4f5 !important;
+  }
+  .ticket div span {
+    color: #f4f4f5 !important;
+    font-size: 14px;
+    font-weight: 500;
+  }
+  .ticket div b {
+    color: #fbbf24 !important;
+    font-size: 15px;
+    font-weight: 700;
+  }
+  .ticket label {
+    display: grid;
+    gap: 6px;
+    color: #e4e4e7 !important;
+    font-size: 13px;
+    font-weight: 600;
+    margin: 10px 0;
+  }
+  .ticket input, .ticket select {
+    background: #27272a !important;
+    color: #ffffff !important;
+    border: 1px solid #52525b !important;
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .ticket input::placeholder {
+    color: #a1a1aa !important;
+  }
+  .ticket summary {
+    cursor: pointer;
+    color: #fbbf24 !important;
+    font-weight: 700;
+    font-size: 13px;
+  }
+  .ticket .pay {
+    width: 100%;
+    margin-top: 14px;
+    background: linear-gradient(135deg, #16a34a, #15803d) !important;
+    color: #ffffff !important;
+    font-size: 16px;
+    font-weight: 800;
+    padding: 14px;
+    border-radius: 12px;
+    box-shadow: 0 6px 16px rgba(22, 163, 74, 0.4);
+    cursor: pointer;
+  }
+  .ticket .pay:hover {
+    filter: brightness(1.1);
+  }
+</style>
+
+<header>
+  <div>
+    <p class="eyebrow">{{ mesa.zona.nombre|upper }}</p>
+    <h1>Comanda · {{ mesa.nombre }} <span style="font-size:14px; font-weight:600; padding:3px 10px; border-radius:12px; background:#3f3f46; color:#fbbf24;">{{ mesa.estado|upper }}</span></h1>
+  </div>
+  <a href="/mesas" class="button secondary">← Plano de mesas</a>
+</header>
+
+<div class="pos">
+  <!-- Selección de productos -->
+  <section class="products">
+    <h2>Agregar producto</h2>
+    {% for p in productos %}
+    <button class="product" onclick="add({{ p.id }})">
+      <span>{{ p.nombre }}</span>
+      <b>${{ '{:,.0f}'.format(p.precio_venta) }}</b>
+    </button>
+    {% endfor %}
+  </section>
+
+  <!-- Panel lateral de Pedido / Facturación -->
+  <aside class="ticket">
+    <h2>Pedido actual</h2>
+    {% if venta %}
+      {% for d in venta.detalles %}
+      <div>
+        <span>{{ d.cantidad }} × {{ d.producto.nombre if d.producto else ('producto #' ~ d.producto_id) }}</span>
+        <b>${{ '{:,.0f}'.format(d.precio * d.cantidad) }} 
+          <button style="padding:0 6px; background:transparent; border:none; box-shadow:none; color:#ef4444; font-size:18px; cursor:pointer;" title="Eliminar ítem" onclick="removeItem({{ venta.id }}, {{ d.id }})">✕</button>
+        </b>
+      </div>
+      {% endfor %}
+      
+      <hr style="border:0; border-top:1px solid #3f3f46; margin:16px 0;">
+      
+      <!-- Ajustes de descuento / propina / impuesto -->
+      <form class="stack compact" onsubmit="return ajustes(event, {{ venta.id }})">
+        <label>Descuento ($)
+          <input id="descuento" type="number" min="0" step="0.01" value="{{ venta.descuento }}" placeholder="Descuento">
+        </label>
+        <label>Propina ($)
+          <input id="propina" type="number" min="0" step="0.01" value="{{ venta.propina }}" placeholder="Propina">
+        </label>
+        <label>Impuesto ($)
+          <input id="impuesto" type="number" min="0" step="0.01" value="{{ venta.impuesto }}" placeholder="Impuesto">
+        </label>
+        <button class="secondary" style="margin-top:6px; width:100%;">Aplicar ajustes</button>
+      </form>
+      
+      <p style="margin-top:12px; font-size:13px; color:#d4d4d8 !important;">
+        Subtotal: <strong>${{ '{:,.0f}'.format(venta.subtotal) }}</strong> · Impuesto: <strong>${{ '{:,.0f}'.format(venta.impuesto) }}</strong>
+      </p>
+      <h2 style="font-size:22px; color:#fbbf24 !important; margin-top:8px;">Total: $<span id="total">{{ '{:,.0f}'.format(venta.total) }}</span></h2>
+      
+      <!-- Operaciones avanzadas -->
+      <details style="margin:14px 0; padding:10px; border:1px solid #3f3f46; border-radius:9px; background:#27272a;">
+        <summary style="cursor:pointer; color:#fbbf24; font-size:13px; font-weight:700;">⚙️ Operaciones de mesa</summary>
+        <div style="display:grid; gap:7px; margin-top:10px;">
+          <label style="margin:0;">Trasladar a otra mesa
+            <select id="mesa-destino">
+              {% for m in mesas_destino %}
+              <option value="{{ m.id }}">{{ m.nombre }} · {{ m.zona.nombre }}</option>
+              {% endfor %}
+            </select>
+          </label>
+          <button class="secondary" onclick="transfer({{ venta.id }})">Trasladar / fusionar</button>
+          <button style="background:#dc2626 !important; color:#fff; border:none; margin-top:4px;" onclick="cancel({{ venta.id }})">Anular comanda</button>
+        </div>
+      </details>
+
+      <!-- Opciones de cobro -->
+      <label>Medio de pago
+        <select id="medio">
+          <option value="efectivo">Efectivo</option>
+          <option value="tarjeta">Tarjeta débito / crédito</option>
+          <option value="transferencia">Transferencia Nequi/Daviplata/Bancolombia</option>
+          <option value="credito">Crédito a cliente</option>
+        </select>
+      </label>
+      
+      <label id="cliente-wrap" hidden>Cliente a cargar crédito
+        <select id="cliente">
+          {% for c in clientes %}
+          <option value="{{ c.id }}">{{ c.nombre }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      
+      <button class="pay" onclick="pay({{ venta.id }})">💳 Facturar y cerrar cuenta (Pasa a Limpieza)</button>
+
+    {% else %}
+      <p style="padding:20px 0; text-align:center; color:#a1a1aa !important;">No hay productos cargados en esta mesa.</p>
+      
+      <!-- Acciones de estado cuando no hay pedido -->
+      <div style="display:grid; gap:8px; margin-top:16px;">
+        {% if mesa.estado == 'limpieza' %}
+        <form action="/mesas/{{ mesa.id }}/estado" method="post">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <input type="hidden" name="estado" value="libre">
+          <button type="submit" style="width:100%; background:#16a34a; color:#fff; font-weight:700; padding:12px; border-radius:10px; border:none; cursor:pointer;">✨ Marcar como Limpia y Liberar</button>
+        </form>
+        {% elif mesa.estado == 'libre' %}
+        <form action="/mesas/{{ mesa.id }}/estado" method="post">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <input type="hidden" name="estado" value="reservada">
+          <button type="submit" style="width:100%; background:#d97706; color:#fff; font-weight:700; padding:12px; border-radius:10px; border:none; cursor:pointer;">📅 Reservar mesa</button>
+        </form>
+        {% elif mesa.estado == 'reservada' %}
+        <form action="/mesas/{{ mesa.id }}/estado" method="post">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <input type="hidden" name="estado" value="libre">
+          <button type="submit" style="width:100%; background:#2563eb; color:#fff; font-weight:700; padding:12px; border-radius:10px; border:none; cursor:pointer;">🔓 Cancelar Reserva y Liberar</button>
+        </form>
+        {% endif %}
+      </div>
+    {% endif %}
+  </aside>
+</div>
+
+<script>
+  const medio = document.getElementById('medio');
+  if (medio) {
+    medio.onchange = () => document.getElementById('cliente-wrap').hidden = (medio.value !== 'credito');
+  }
+
+  async function add(id) {
+    await fetch('/api/comanda/{{ mesa.id }}/items', {
+      method: 'POST',
+      body: new URLSearchParams({ producto_id: id, cantidad: 1 })
+    });
+    location.reload();
+  }
+
+  async function ajustes(e, id) {
+    e.preventDefault();
+    let r = await fetch('/api/ventas/' + id + '/ajustes', {
+      method: 'POST',
+      body: new URLSearchParams({
+        descuento: descuento.value || 0,
+        propina: propina.value || 0,
+        impuesto: impuesto.value || 0
+      })
+    });
+    let j = await r.json();
+    if (!r.ok) { alert(j.detail); return false; }
+    location.reload();
+    return false;
+  }
+
+  async function removeItem(v, d) {
+    if (confirm('¿Eliminar este producto?')) {
+      let r = await fetch('/api/ventas/' + v + '/items/' + d + '/eliminar', { method: 'POST' });
+      if (r.ok) location.reload();
+      else alert((await r.json()).detail);
+    }
+  }
+
+  async function transfer(id) {
+    let m = document.getElementById('mesa-destino').value;
+    if (!m) return;
+    let r = await fetch('/api/ventas/' + id + '/trasladar', {
+      method: 'POST',
+      body: new URLSearchParams({ mesa_destino_id: m })
+    });
+    let j = await r.json();
+    if (!r.ok) { alert(j.detail); return; }
+    location.href = '/comanda/' + j.destino;
+  }
+
+  async function cancel(id) {
+    let motivo = prompt('Motivo de anulación:');
+    if (!motivo) return;
+    let r = await fetch('/api/ventas/' + id + '/anular', {
+      method: 'POST',
+      body: new URLSearchParams({ motivo })
+    });
+    if (!r.ok) { alert((await r.json()).detail); return; }
+    location.href = '/mesas';
+  }
+
+  async function pay(id) {
+    if (confirm('¿Confirmar facturación? La mesa pasará al estado Limpieza.')) {
+      let data = new URLSearchParams({
+        medio_pago: medio.value,
+        cliente_id: document.getElementById('cliente') ? document.getElementById('cliente').value : ''
+      });
+      let r = await fetch('/api/ventas/' + id + '/pagar', { method: 'POST', body: data });
+      let j = await r.json();
+      if (!r.ok) { alert(j.detail); return; }
+      location.href = j.factura_url;
+    }
+  }
 </script>
 
-<!-- FASE 6: WebSocket Handlers para Comanda -->
 <script>
     document.addEventListener('DOMContentLoaded', () => {
         if (!window.wsClient) return;
-        
         const ventaId = {{ venta.id if venta else 'null' }};
         const mesaId = {{ mesa.id }};
         
-        // Escuchar cambios en comanda desde otros dispositivos (KDS, app mesero)
         wsClient.on('comanda.actualizada', (datos) => {
             if (datos.venta_id === ventaId) {
-                UIUpdates.mostrarNotificacion('Comanda Actualizada', 'Cambios en otras estaciones detectados', 'info');
-                // Recargar para sincronizar
                 setTimeout(() => location.reload(), 1000);
             }
         });
         
-        // Escuchar cambios en estado de mesa
         wsClient.on('mesa.cambio_estado', (datos) => {
             if (datos.mesa_id === mesaId) {
-                const nuevoEstado = datos.estado;
-                console.log(`🔄 Mesa cambió a: ${nuevoEstado}`);
-                
-                // Si la mesa fue cerrada, redirigir a plano
-                if (nuevoEstado === 'libre' || nuevoEstado === 'cerrada') {
-                    UIUpdates.mostrarNotificacion('Mesa Cerrada', 'Otro dispositivo cerró esta mesa', 'warning');
-                    setTimeout(() => window.location.href = '/mesas', 2000);
+                if (datos.estado === 'libre' || datos.estado === 'limpieza') {
+                    setTimeout(() => window.location.href = '/mesas', 1500);
                 }
             }
         });
-        
-        // Emitir evento cuando se añade producto
-        window.addOriginal = window.add;
-        window.add = async (id) => {
-            await window.addOriginal(id);
-            // Notificar a otros dispositivos
-            wsClient.emit('comanda.producto_agregado', {
-                venta_id: ventaId,
-                mesa_id: mesaId,
-                producto_id: id
-            });
-        };
-        
-        // Emitir evento cuando se paga
-        window.payOriginal = window.pay;
-        window.pay = async (id) => {
-            wsClient.emit('comanda.pagada', {
-                venta_id: id,
-                mesa_id: mesaId
-            });
-            await window.payOriginal(id);
-        };
     });
 </script>
 {% endblock %}

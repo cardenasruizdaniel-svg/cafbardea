@@ -656,7 +656,7 @@ async def pagar_comanda(
     # Actualizar mesa
     mesa = db.query(Mesa).filter(Mesa.id == venta.mesa_id).first()
     if mesa:
-        mesa.estado = "libre"
+        mesa.estado = "limpieza"
     
     db.commit()
     

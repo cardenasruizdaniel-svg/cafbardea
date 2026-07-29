@@ -55,11 +55,18 @@
   {% if z.mesas %}
   <div class="mesas-grid">
     {% for m in z.mesas|sort(attribute='nombre') %}
-    <a class="mesa {{ m.estado }}" href="/mobile/comanda/{{ m.id }}">
-      <span class="mesa-nombre">{{ m.nombre }}</span>
-      <span class="mesa-cap">{{ m.capacidad }} pers</span>
-      <span class="mesa-estado">{{ m.estado }}</span>
-    </a>
+    <div style="position:relative;">
+      <a class="mesa {{ m.estado }}" href="/mobile/comanda/{{ m.id }}">
+        <span class="mesa-nombre">{{ m.nombre }}</span>
+        <span class="mesa-cap">{{ m.capacidad }} pers</span>
+        <span class="mesa-estado">{{ m.estado }}</span>
+      </a>
+      {% if m.estado == 'limpieza' %}
+      <button onclick="cambiarEstadoMesa(event, {{ m.id }}, 'libre')" style="position:absolute; bottom:-10px; left:50%; transform:translateX(-50%); background:#16a34a; color:#fff; font-size:10px; font-weight:700; padding:4px 8px; border-radius:10px; border:none; cursor:pointer; white-space:nowrap; z-index:5; box-shadow:0 3px 8px rgba(0,0,0,0.2);">✨ Limpia (Liberar)</button>
+      {% elif m.estado == 'reservada' %}
+      <button onclick="cambiarEstadoMesa(event, {{ m.id }}, 'libre')" style="position:absolute; bottom:-10px; left:50%; transform:translateX(-50%); background:#2563eb; color:#fff; font-size:10px; font-weight:700; padding:4px 8px; border-radius:10px; border:none; cursor:pointer; white-space:nowrap; z-index:5; box-shadow:0 3px 8px rgba(0,0,0,0.2);">🔓 Liberar</button>
+      {% endif %}
+    </div>
     {% endfor %}
   </div>
   {% else %}
@@ -69,6 +76,29 @@
 {% else %}
 <p class="vacio">No hay zonas configuradas todavía.</p>
 {% endfor %}
+
+<script>
+async function cambiarEstadoMesa(event, mesaId, nuevoEstado) {
+  event.preventDefault();
+  event.stopPropagation();
+  try {
+    const r = await fetch(`/api/mesero/mesa/${mesaId}/estado`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({ estado: nuevoEstado })
+    });
+    if (r.ok) {
+      location.reload();
+    } else {
+      const d = await r.json();
+      alert(d.detail || 'Error al cambiar estado');
+    }
+  } catch (e) {
+    alert('Error al conectar con el servidor');
+  }
+}
+</script>
 
 <nav class="bottom-nav">
   <a href="/mobile">Inicio</a>

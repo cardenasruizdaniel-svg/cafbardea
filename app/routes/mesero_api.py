@@ -221,3 +221,30 @@ def mesero_quitar_item(mesa_id: int, detalle_id: int, request: Request,
     recalcular_venta(venta)
     db.commit()
     return {"ok": True, "total": float(venta.total)}
+
+
+@router.post("/api/mesero/mesa/{mesa_id}/estado")
+async def mesero_cambiar_estado_mesa(mesa_id: int, request: Request,
+                                     db: Session = Depends(get_db)):
+    """API para que el mesero cambie el estado de la mesa (limpieza -> libre, libre -> reservada)."""
+    _exigir_sesion(request)
+    datos = await request.json() if "application/json" in request.headers.get("content-type", "") else {}
+    estado = datos.get("estado")
+    if not estado:
+        form = await request.form()
+        estado = form.get("estado")
+    if not estado:
+        raise HTTPException(400, "Estado no proporcionado")
+    estado_clean = str(estado).strip().lower()
+    if estado_clean not in ("libre", "ocupada", "reservada", "limpieza"):
+        raise HTTPException(400, "Estado inválido")
+    mesa = db.get(Mesa, mesa_id)
+    if not mesa:
+        raise HTTPException(404, "Mesa no encontrada")
+    venta_abierta = db.scalar(select(Venta).where(Venta.mesa_id == mesa_id, Venta.estado == "abierta"))
+    if venta_abierta and estado_clean == "libre":
+        raise HTTPException(400, "La mesa tiene una cuenta abierta")
+    mesa.estado = estado_clean
+    db.commit()
+    return {"ok": True, "mesa_id": mesa_id, "estado": estado_clean}
+

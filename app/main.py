@@ -1100,8 +1100,28 @@ def pagar(venta_id:int, request: Request, medio_pago: str = Form("efectivo"), cl
     venta.numero_factura = f"{empresa.prefijo_factura}-{empresa.consecutivo_factura:06d}"
     empresa.consecutivo_factura += 1
     venta.estado="credito" if medio_pago == "credito" else "pagada"; venta.medio_pago=medio_pago
-    if venta.mesa_id: db.get(Mesa,venta.mesa_id).estado="libre"
+    if venta.mesa_id: db.get(Mesa,venta.mesa_id).estado="limpieza"
     db.commit(); return {"ok":True, "factura_url":f"/facturas/{venta.id}"}
+
+
+@app.post("/mesas/{mesa_id}/estado")
+def cambiar_estado_mesa(mesa_id: int, request: Request, estado: str = Form(...),
+                        db: Session = Depends(get_db)):
+    """Cambia el estado de una mesa (libre | ocupada | reservada | limpieza)."""
+    exigir_rol(request, "administrador", "gerente", "cajero", "caja", "mesero")
+    mesa = db.get(Mesa, mesa_id)
+    if not mesa:
+        raise HTTPException(404, "Mesa no encontrada")
+    estado_clean = estado.strip().lower()
+    if estado_clean not in ("libre", "ocupada", "reservada", "limpieza"):
+        raise HTTPException(400, "Estado de mesa inválido")
+    venta_abierta = db.scalar(select(Venta).where(Venta.mesa_id == mesa_id, Venta.estado == "abierta"))
+    if venta_abierta and estado_clean == "libre":
+        raise HTTPException(400, "La mesa tiene una cuenta abierta")
+    mesa.estado = estado_clean
+    db.commit()
+    ref = request.headers.get("referer") or "/mesas"
+    return RedirectResponse(ref, 303)
 
 @app.get("/facturas/{venta_id}", response_class=HTMLResponse)
 def factura(venta_id: int, request: Request, db: Session = Depends(get_db)):

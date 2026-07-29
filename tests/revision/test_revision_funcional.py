@@ -220,4 +220,43 @@ class TestZonasYCategorias:
             assert r2.status_code == 200
             assert mesa.nombre in r2.text
 
+    def test_facturar_mesa_pasa_a_limpieza(self, client_autenticado, db_session):
+        from app.models import Mesa, Venta
+        mesa = db_session.query(Mesa).first()
+        if not mesa:
+            return
+        venta = Venta(mesa_id=mesa.id, estado="abierta", total=1000)
+        db_session.add(venta)
+        mesa.estado = "ocupada"
+        db_session.commit()
+
+        r = client_autenticado.post(f"/api/ventas/{venta.id}/pagar",
+                                    data={"medio_pago": "efectivo"},
+                                    follow_redirects=False)
+        assert r.status_code == 200
+        db_session.refresh(mesa)
+        assert mesa.estado == "limpieza"
+
+    def test_cambio_estado_mesa(self, client_autenticado, db_session):
+        from app.models import Mesa
+        mesa = db_session.query(Mesa).first()
+        if not mesa:
+            return
+
+        # Cambiar a reservada
+        r1 = client_autenticado.post(f"/mesas/{mesa.id}/estado",
+                                     data={"estado": "reservada"},
+                                     follow_redirects=False)
+        assert r1.status_code == 303
+        db_session.refresh(mesa)
+        assert mesa.estado == "reservada"
+
+        # Mesero cambia a libre
+        r2 = client_autenticado.post(f"/api/mesero/mesa/{mesa.id}/estado",
+                                     json={"estado": "libre"})
+        assert r2.status_code == 200
+        db_session.refresh(mesa)
+        assert mesa.estado == "libre"
+
+
 
