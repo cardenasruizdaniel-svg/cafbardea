@@ -14,7 +14,6 @@
             <h1>{{ empresa.nombre }}</h1>
             <p class="meta">{{ usuario.nombre }} · {{ usuario.rol | title }}</p>
         </div>
-        <a class="switch-web" href="/">💻 Volver a la versión Web</a>
     </header>
 
     <section class="mobile-stats">
@@ -35,26 +34,22 @@
     <main class="mobile-actions">
         <a class="action-card" href="/mobile/mesas">
             <h2>Mesas</h2>
-            <p>Tomar pedido y mover mesas</p>
+            <p>Tomar pedido y consultar comandas</p>
         </a>
         <a class="action-card" href="/mobile/mesas">
-            <h2>Comanda rapida</h2>
+            <h2>Comanda rápida</h2>
             <p>Agregar productos al instante</p>
         </a>
-        <a class="action-card" href="/cocina">
-            <h2>Cocina</h2>
-            <p>Ver pendientes y estados</p>
-        </a>
-        <a class="action-card" href="/domicilios">
-            <h2>Domicilios</h2>
-            <p>Controlar entregas en ruta</p>
+        <a class="action-card" href="/mobile/cocina">
+            <h2>Cocina Móvil</h2>
+            <p>Ver preparaciones y actualizar estados</p>
         </a>
     </main>
 
     <nav class="bottom-nav">
         <a href="/mobile" class="active">Inicio</a>
         <a href="/mobile/mesas">Mesas</a>
-        <a href="/cocina">Cocina</a>
+        <a href="/mobile/cocina">Cocina</a>
         <a href="/logout">Salir</a>
     </nav>
 </body>

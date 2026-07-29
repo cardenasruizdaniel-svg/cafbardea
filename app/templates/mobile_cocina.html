@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#121826">
+<title>Cocina Móvil · CFBARDLA</title>
+<link rel="stylesheet" href="/static/css/mobile-platform.css">
+<style>
+  :root { --naranja:#f59e0b; --naranja-claro:#fbbf24; --bg:#0f172a; --card:#1e293b; --borde:rgba(255,255,255,0.1); }
+  * { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+  body { font-family:-apple-system,"Segoe UI",Roboto,sans-serif; background:var(--bg); color:#f8fafc; padding-bottom:80px; }
+  .mobile-header { background:linear-gradient(135deg, #1e293b, #0f172a); border-bottom:1px solid var(--borde); padding:16px; display:flex; justify-content:space-between; align-items:center; }
+  .mobile-header h1 { font-size:18px; color:#fef3c7; }
+  .mobile-header p { font-size:12px; color:#94a3b8; }
+  .kds-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:12px; padding:16px; }
+  .kds-card { background:var(--card); border:1px solid var(--borde); border-radius:14px; padding:14px; box-shadow:0 4px 12px rgba(0,0,0,0.3); display:flex; flex-direction:column; gap:8px; }
+  .kds-top { display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(255,255,255,0.06); padding-bottom:6px; }
+  .kds-mesa { font-weight:700; color:#fef3c7; font-size:15px; }
+  .kds-hora { font-size:12px; color:#94a3b8; }
+  .kds-producto { font-size:16px; font-weight:700; color:#f8fafc; }
+  .kds-cant { background:#f59e0b; color:#0f172a; font-weight:800; padding:2px 8px; border-radius:12px; font-size:13px; display:inline-block; }
+  .kds-nota { font-size:13px; color:#fbbf24; font-style:italic; background:rgba(245,158,11,0.1); padding:6px; border-radius:6px; }
+  .kds-actions { display:flex; gap:8px; margin-top:6px; }
+  .btn-estado { flex:1; padding:10px; border-radius:10px; border:none; font-weight:700; font-size:13px; cursor:pointer; text-align:center; }
+  .btn-preparando { background:#3b82f6; color:#fff; }
+  .btn-listo { background:#10b981; color:#fff; }
+  .btn-entregado { background:#64748b; color:#fff; }
+  .badge-estado { font-size:11px; padding:3px 8px; border-radius:8px; font-weight:700; text-transform:uppercase; }
+  .st-pendiente { background:rgba(239,68,68,0.2); color:#fca5a5; }
+  .st-preparando { background:rgba(59,130,246,0.2); color:#93c5fd; }
+  .st-listo { background:rgba(16,185,129,0.2); color:#6ee7b7; }
+  .vacio { text-align:center; color:#94a3b8; padding:40px 16px; font-size:15px; }
+  .bottom-nav { position:fixed; bottom:0; left:0; right:0; background:#1e293b; border-top:1px solid var(--borde); display:flex; padding:8px; z-index:100; }
+  .bottom-nav a { flex:1; text-align:center; text-decoration:none; color:#94a3b8; font-size:12px; font-weight:600; padding:6px; }
+  .bottom-nav a.active { color:#fef3c7; }
+</style>
+</head>
+<body>
+  <header class="mobile-header">
+    <div>
+      <p style="font-size:10px; font-weight:800; color:#f59e0b; letter-spacing:1px;">MÓDULO POS MÓVIL</p>
+      <h1>👨‍🍳 Cocina & Preparaciones</h1>
+      <p>{{ usuario.nombre }} · {{ usuario.rol | title }}</p>
+    </div>
+    <button onclick="location.reload()" style="background:rgba(255,255,255,0.1); border:1px solid var(--borde); color:#fff; padding:6px 12px; border-radius:20px; font-size:12px; font-weight:600; cursor:pointer;">🔄 Actualizar</button>
+  </header>
+
+  <main class="kds-grid">
+    {% for f in filas %}
+    <article class="kds-card">
+      <div class="kds-top">
+        <span class="kds-mesa">📍 {{ f.mesa }}</span>
+        <span class="badge-estado st-{{ f.estado }}">{{ f.estado }}</span>
+      </div>
+      <div>
+        <span class="kds-cant">{{ f.cantidad }}x</span>
+        <span class="kds-producto">{{ f.producto }}</span>
+      </div>
+      {% if f.nota %}
+      <div class="kds-nota">📝 {{ f.nota }}</div>
+      {% endif %}
+      <div class="kds-actions">
+        {% if f.estado == 'pendiente' %}
+        <button class="btn-estado btn-preparando" onclick="cambiarEstado({{ f.id }}, 'preparando')">▶ Preparar</button>
+        {% elif f.estado == 'preparando' %}
+        <button class="btn-estado btn-listo" onclick="cambiarEstado({{ f.id }}, 'listo')">✓ Listo</button>
+        {% elif f.estado == 'listo' %}
+        <button class="btn-estado btn-entregado" onclick="cambiarEstado({{ f.id }}, 'entregado')">✓ Entregado</button>
+        {% endif %}
+      </div>
+    </article>
+    {% else %}
+    <p class="vacio">🎉 No hay preparaciones pendientes en cocina.</p>
+    {% endfor %}
+  </main>
+
+  <nav class="bottom-nav">
+    <a href="/mobile">Inicio</a>
+    <a href="/mobile/mesas">Mesas</a>
+    <a href="/mobile/cocina" class="active">Cocina</a>
+    <a href="/logout">Salir</a>
+  </nav>
+
+  <script>
+    async function cambiarEstado(detalleId, nuevoEstado) {
+      try {
+        let res = await fetch('/cocina/' + detalleId + '/estado', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({ estado: nuevoEstado })
+        });
+        if (res.ok) {
+          location.reload();
+        } else {
+          alert('Error al actualizar estado');
+        }
+      } catch(e) {
+        alert('Error de conexión');
+      }
+    }
+  </script>
+</body>
+</html>

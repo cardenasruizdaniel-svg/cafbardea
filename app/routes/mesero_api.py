@@ -84,6 +84,39 @@ def mesero_comanda(mesa_id: int, request: Request, db: Session = Depends(get_db)
     })
 
 
+@router.get("/mobile/cocina", response_class=HTMLResponse)
+def mesero_cocina(request: Request, db: Session = Depends(get_db)):
+    """Pantalla de cocina KDS optimizada para la app movil."""
+    _exigir_sesion(request)
+    items = db.scalars(
+        select(DetalleVenta)
+        .where(DetalleVenta.estado_cocina.in_(["pendiente", "preparando", "listo"]))
+        .order_by(DetalleVenta.id.desc())
+        .limit(50)
+    ).all()
+
+    filas = []
+    for d in items:
+        prod = db.get(Producto, d.producto_id)
+        venta = db.get(Venta, d.venta_id) if d.venta_id else None
+        mesa = db.get(Mesa, venta.mesa_id) if (venta and venta.mesa_id) else None
+        filas.append({
+            "id": d.id,
+            "producto": prod.nombre if prod else f"Producto #{d.producto_id}",
+            "cantidad": d.cantidad,
+            "nota": d.nota or "",
+            "estado": d.estado_cocina or "pendiente",
+            "mesa": mesa.nombre if mesa else "Mostrador",
+        })
+
+    return _templates.TemplateResponse(request, "mobile_cocina.html", {
+        "request": request,
+        "filas": filas,
+        "usuario": {"nombre": request.session.get("usuario_nombre", ""),
+                    "rol": request.session.get("rol", "")},
+    })
+
+
 # ============================================================================
 # API: tomar pedido y comandar
 # ============================================================================
