@@ -131,12 +131,25 @@ async def manejar_http_exception(request: Request, exc: StarletteHTTPException):
     titulos = {403: "Acceso restringido", 404: "Página no encontrada",
                401: "Necesitas iniciar sesión", 400: "Solicitud inválida"}
     try:
+        from .database import SessionLocal as _SLE
+        _edb = _SLE()
+        try:
+            ctx = context(request, _edb)
+        finally:
+            _edb.close()
+    except Exception:
+        ctx = {"request": request, "empresa": Empresa(id=1, nombre="CafBarDLA", nit="900.000.000-1"),
+               "usuario": {"id": 1, "nombre": "Usuario", "rol": "administrador"}}
+
+    referer = request.headers.get("referer") or "/dashboard"
+    try:
         return templates.TemplateResponse(
             request, "error.html",
-            {"request": request, "codigo": exc.status_code,
-             "titulo": titulos.get(exc.status_code, "Ocurrió un problema"),
-             "mensaje": exc.detail or "No se pudo completar la solicitud.",
-             "referencia": None},
+            ctx | {"codigo": exc.status_code,
+                   "titulo": titulos.get(exc.status_code, "Ocurrió un problema"),
+                   "mensaje": exc.detail or "No se pudo completar la solicitud.",
+                   "referer": referer,
+                   "referencia": None},
             status_code=exc.status_code)
     except Exception:
         return JSONResponse({"detail": exc.detail}, status_code=exc.status_code)
@@ -158,10 +171,12 @@ async def manejar_error_no_controlado(request: Request, exc: Exception):
                 request, accion="otro", resultado="error",
                 descripcion=f"Error interno [{referencia}] en {request.url.path}: {str(exc)[:150]}")
             _edb.commit()
+            ctx = context(request, _edb)
         finally:
             _edb.close()
     except Exception:
-        pass
+        ctx = {"request": request, "empresa": Empresa(id=1, nombre="CafBarDLA", nit="900.000.000-1"),
+               "usuario": {"id": 1, "nombre": "Usuario", "rol": "administrador"}}
 
     if _quiere_json(request):
         return JSONResponse(
@@ -173,12 +188,12 @@ async def manejar_error_no_controlado(request: Request, exc: Exception):
     try:
         return templates.TemplateResponse(
             request, "error.html",
-            {"request": request, "codigo": 500,
-             "titulo": "Algo salió mal",
-             "mensaje": "Ocurrió un error inesperado. El equipo quedó notificado.",
-             "referencia": referencia,
-             "referer": referer,
-             "detalle_tecnico": detalle},
+            ctx | {"codigo": 500,
+                   "titulo": "Algo salió mal",
+                   "mensaje": "Ocurrió un error inesperado. El equipo quedó notificado.",
+                   "referencia": referencia,
+                   "referer": referer,
+                   "detalle_tecnico": detalle},
             status_code=500)
     except Exception:
         return JSONResponse(
@@ -442,17 +457,13 @@ def context(request, db):
     }
 
 def exigir_rol(request: Request, *roles: str):
-    """Compatibilidad: exige que el rol de la sesion este entre los indicados.
-
-    Se conserva para no romper las rutas existentes. El super administrador
-    siempre pasa. La verificacion por modulo (mas moderna) es exigir_modulo.
-    """
     rol_sesion = request.session.get("rol")
-    # El super admin (nivel maximo) siempre pasa.
-    if rol_sesion and rol_sesion.lower() in ("administrador", "super administrador"):
+    if not rol_sesion:
+        raise HTTPException(401, "Debe iniciar sesión para realizar esta acción")
+    roles_lower = [r.lower() for r in roles]
+    if rol_sesion.lower() in ("administrador", "super administrador") or rol_sesion.lower() in roles_lower:
         return
-    if rol_sesion not in roles:
-        raise HTTPException(403, "No tiene permisos para esta acción")
+    raise HTTPException(403, "No tiene permisos para esta acción")
 
 
 def exigir_modulo(request: Request, modulo: str, db: Session):
