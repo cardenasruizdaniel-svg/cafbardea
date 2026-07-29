@@ -166,16 +166,12 @@ def client(db_session):
             self._csrf = None
 
         def _asegurar_token(self):
-            if self._csrf:
-                return self._csrf
-            # Un GET siembra el token en la sesion. Se intenta primero una
-            # pagina autenticada (dashboard); si no hay sesion aun, cae a login.
             for ruta in ("/empleados", "/dashboard", "/login"):
                 r = super().get(ruta)
                 m = _re.search(r'name="csrf_token" value="([^"]+)"', r.text)
                 if m:
                     self._csrf = m.group(1)
-                    break
+                    return self._csrf
             return self._csrf
 
         def request(self, method, url, **kwargs):
@@ -183,8 +179,13 @@ def client(db_session):
                 token = self._asegurar_token()
                 if token:
                     headers = dict(kwargs.get("headers") or {})
-                    headers.setdefault("X-CSRF-Token", token)
+                    headers["X-CSRF-Token"] = token
                     kwargs["headers"] = headers
+                    data = kwargs.get("data")
+                    if isinstance(data, dict) and "csrf_token" not in data:
+                        data_copy = dict(data)
+                        data_copy["csrf_token"] = token
+                        kwargs["data"] = data_copy
             return super().request(method, url, **kwargs)
 
     yield ClienteCSRF(app)

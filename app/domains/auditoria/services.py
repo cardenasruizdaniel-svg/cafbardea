@@ -77,30 +77,34 @@ class AuditoriaService:
                   entidad_id: Optional[Any] = None,
                   descripcion: Optional[str] = None,
                   antes: Any = None, despues: Any = None,
-                  resultado: str = "exito", empresa_id: int = 1
+                  resultado: str = "exito", empresa_id: Optional[int] = None
                   ) -> Optional[RegistroAuditoria]:
-        """Crea un registro de auditoria. Nunca lanza excepcion hacia afuera."""
         try:
+            if accion not in ACCIONES:
+                accion = "otro"
+            if not empresa_id:
+                from app.models import Empresa
+                from sqlalchemy import select
+                emp = self.db.scalar(select(Empresa).limit(1))
+                empresa_id = emp.id if emp else 1
+
             reg = RegistroAuditoria(
-                empresa_id=empresa_id, fecha_hora=hora_colombia(),
-                usuario_id=usuario_id, usuario_nombre=usuario_nombre, rol=rol,
-                ip=ip, accion=accion if accion in ACCIONES else "otro",
+                empresa_id=empresa_id,
+                fecha_hora=hora_colombia(),
+                usuario_id=usuario_id,
+                usuario_nombre=usuario_nombre or "sistema",
+                rol=rol, ip=ip, accion=accion,
                 modulo=modulo, entidad=entidad,
                 entidad_id=str(entidad_id) if entidad_id is not None else None,
                 descripcion=descripcion,
                 valor_anterior=_serializar(antes),
                 valor_nuevo=_serializar(despues),
-                resultado=resultado)
+                resultado=resultado
+            )
             self.db.add(reg)
-            self.db.flush()
             return reg
         except Exception as e:
-            # La auditoria jamas debe tumbar la operacion de negocio.
-            self.logger.error("No se pudo registrar auditoria: %s", e)
-            try:
-                self.db.rollback()
-            except Exception:
-                pass
+            self.logger.warning("No se pudo registrar log de auditoría: %s", e)
             return None
 
     def registrar_desde_request(self, request, *, accion: str, **kwargs
@@ -112,12 +116,13 @@ class AuditoriaService:
         except Exception:
             pass
         ip = self._ip(request)
+        emp_id = sesion.get("empresa_id")
         return self.registrar(
             accion=accion,
             usuario_id=sesion.get("usuario_id"),
             usuario_nombre=sesion.get("usuario_nombre"),
             rol=sesion.get("rol"), ip=ip,
-            empresa_id=sesion.get("empresa_id") or 1,
+            empresa_id=emp_id,
             **kwargs)
 
     @staticmethod

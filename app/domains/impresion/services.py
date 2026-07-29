@@ -127,17 +127,25 @@ class ImpresionService:
     # ------------------------------------------------------------------
     # Gestion
     # ------------------------------------------------------------------
+    def _empresa_id(self) -> int:
+        from app.models import Empresa
+        emp = self.db.scalar(select(Empresa).limit(1))
+        return emp.id if emp else 1
+
     def crear_impresora(self, nombre: str, destino: str = "local",
                         tipo_conexion: str = "local",
-                        es_por_defecto: bool = False) -> Impresora:
+                        es_por_defecto: bool = False,
+                        empresa_id: Optional[int] = None) -> Impresora:
         if not nombre.strip():
             raise ValueError("El nombre de la impresora es obligatorio")
+        if not empresa_id:
+            empresa_id = self._empresa_id()
         # Solo una impresora por defecto: si esta se marca, desmarca las demas.
         if es_por_defecto:
             for otra in self.db.scalars(
                     select(Impresora).where(Impresora.es_por_defecto.is_(True))):
                 otra.es_por_defecto = False
-        imp = Impresora(nombre=nombre.strip(), destino=destino.strip() or "local",
+        imp = Impresora(empresa_id=empresa_id, nombre=nombre.strip(), destino=destino.strip() or "local",
                         tipo_conexion=tipo_conexion, es_por_defecto=es_por_defecto,
                         activa=True)
         self.db.add(imp)
@@ -149,14 +157,18 @@ class ImpresionService:
             select(Impresora).order_by(Impresora.nombre)).all()
 
     def crear_grupo(self, nombre: str,
-                    impresora_id: Optional[int] = None) -> GrupoImpresion:
+                    impresora_id: Optional[int] = None,
+                    empresa_id: Optional[int] = None) -> GrupoImpresion:
         if not nombre.strip():
             raise ValueError("El nombre del grupo es obligatorio")
-        g = GrupoImpresion(nombre=nombre.strip(), impresora_id=impresora_id,
+        if not empresa_id:
+            empresa_id = self._empresa_id()
+        g = GrupoImpresion(empresa_id=empresa_id, nombre=nombre.strip(), impresora_id=impresora_id,
                            activo=True)
         self.db.add(g)
         self.db.flush()
         return g
+
 
     def listar_grupos(self) -> list[GrupoImpresion]:
         return self.db.scalars(

@@ -773,13 +773,27 @@ def mesas(request: Request, db: Session = Depends(get_db)):
     })
 
 
-def _obtener_empresa_id(db: Session) -> int:
+def _obtener_empresa_id(db: Session, request: Optional[Request] = None) -> int:
+    if request:
+        try:
+            emp_id = request.session.get("empresa_id")
+            if emp_id:
+                emp = db.get(Empresa, emp_id)
+                if emp:
+                    return emp.id
+        except Exception:
+            pass
     emp = db.scalar(select(Empresa).limit(1))
     if not emp:
         emp = Empresa(nombre="Mi Café", nit="900.000.000-1")
         db.add(emp)
         db.commit()
         db.refresh(emp)
+    if request:
+        try:
+            request.session["empresa_id"] = emp.id
+        except Exception:
+            pass
     return emp.id
 
 
@@ -1115,7 +1129,6 @@ def exportar_ventas(desde: date | None = None, hasta: date | None = None, db: Se
         costo = sum((d.costo_unitario * d.cantidad for d in venta.detalles), Decimal("0"))
         writer.writerow([venta.numero_factura or f"Venta-{venta.id}", venta.fecha.isoformat(), venta.canal, venta.medio_pago or "", venta.subtotal, venta.impuesto, costo, venta.total])
     return Response("\ufeff" + salida.getvalue(), media_type="text/csv; charset=utf-8", headers={"Content-Disposition": "attachment; filename=ventas-cafbardla.csv"})
-
 @app.get("/productos", response_class=HTMLResponse)
 def productos(request: Request, db: Session = Depends(get_db)):
     from .domains.impresion.services import ImpresionService
@@ -1123,27 +1136,40 @@ def productos(request: Request, db: Session = Depends(get_db)):
     return templates.TemplateResponse(request, "productos.html", context(request, db) | {"productos": db.scalars(select(Producto).order_by(Producto.nombre)).all(), "categorias": db.scalars(select(Categoria).order_by(Categoria.nombre)).all(), "grupos_impresion": svc.listar_grupos(), "impresoras": svc.listar_impresoras()})
 
 @app.post("/productos/categorias")
-def crear_categoria(nombre: str = Form(...), db: Session = Depends(get_db)):
+def crear_categoria(request: Request, nombre: str = Form(...), db: Session = Depends(get_db)):
+    emp_id = _obtener_empresa_id(db, request)
     nombre = nombre.strip()
-    if nombre and not db.scalar(select(Categoria).where(Categoria.nombre == nombre)):
-        db.add(Categoria(nombre=nombre)); db.commit()
+    try:
+        if nombre and not db.scalar(select(Categoria).where(Categoria.nombre == nombre)):
+            db.add(Categoria(empresa_id=emp_id, nombre=nombre))
+            db.commit()
+    except Exception as e:
+        db.rollback()
+        logger.error("Error creando categoría: %s", e, exc_info=True)
+        return RedirectResponse("/productos?error=Error+creando+categoria", 303)
     return RedirectResponse("/productos", 303)
 
 @app.post("/productos")
-def crear_producto(codigo: str = Form(...), nombre: str = Form(...), categoria_id: int | None = Form(None), tipo: str = Form("venta"), precio_venta: Decimal = Form(0), costo: Decimal = Form(0), existencias: Decimal = Form(0), stock_minimo: Decimal = Form(0), db: Session = Depends(get_db)):
+def crear_producto(request: Request, codigo: str = Form(...), nombre: str = Form(...), categoria_id: int | None = Form(None), tipo: str = Form("venta"), precio_venta: Decimal = Form(0), costo: Decimal = Form(0), existencias: Decimal = Form(0), stock_minimo: Decimal = Form(0), db: Session = Depends(get_db)):
+    emp_id = _obtener_empresa_id(db, request)
     if db.scalar(select(Producto).where(Producto.codigo == codigo.strip())):
         raise HTTPException(400, "El código ya existe")
-    producto = Producto(codigo=codigo.strip(), nombre=nombre.strip(), categoria_id=categoria_id or None, tipo=tipo, precio_venta=precio_venta, costo=costo, existencias=existencias, stock_minimo=stock_minimo)
-    db.add(producto); db.flush()
-    if existencias:
-        # Saldo inicial por el kardex, para que el movimiento quede registrado
-        # con su saldo. Antes se insertaba a mano, saltandose InventarioService.
-        from .domains.inventario.services import InventarioService
-        InventarioService(db).registrar_movimiento(
-            producto_id=producto.id, tipo="ajuste_positivo", cantidad=existencias,
-            costo_unitario=costo, referencia="Saldo inicial",
-            empresa_id=producto.empresa_id or 1)
-    db.commit(); return RedirectResponse("/productos", 303)
+    try:
+        producto = Producto(empresa_id=emp_id, codigo=codigo.strip(), nombre=nombre.strip(), categoria_id=categoria_id or None, tipo=tipo, precio_venta=precio_venta, costo=costo, existencias=existencias, stock_minimo=stock_minimo)
+        db.add(producto)
+        db.flush()
+        if existencias:
+            from .domains.inventario.services import InventarioService
+            InventarioService(db).registrar_movimiento(
+                producto_id=producto.id, tipo="ajuste_positivo", cantidad=existencias,
+                costo_unitario=costo, referencia="Saldo inicial",
+                empresa_id=emp_id)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        logger.error("Error creando producto: %s", e, exc_info=True)
+        return RedirectResponse("/productos?error=Error+creando+producto", 303)
+    return RedirectResponse("/productos", 303)
 
 @app.post("/productos/{producto_id}/editar")
 def editar_producto(producto_id: int, nombre: str = Form(...), precio_venta: Decimal = Form(...), costo: Decimal = Form(...), stock_minimo: Decimal = Form(...), db: Session = Depends(get_db)):
@@ -1169,109 +1195,27 @@ def asignar_impresion_producto(
     producto.impresora_id = (
         int(impresora_id) if impresora_id and impresora_id.strip() else None)
     db.commit()
-    return RedirectResponse("/productos", 303)
-
-
-@app.post("/productos/{producto_id}/estado")
-def cambiar_estado_producto(producto_id: int, db: Session = Depends(get_db)):
-    producto = db.get(Producto, producto_id)
-    if not producto: raise HTTPException(404)
-    producto.activo = not producto.activo; db.commit(); return RedirectResponse("/productos", 303)
-
-@app.post("/inventario/movimiento")
-def movimiento_inventario(request: Request, producto_id: int = Form(...), tipo: str = Form(...),
-                          cantidad: Decimal = Form(...), costo_unitario: Decimal = Form(0),
-                          referencia: str = Form(""), bodega_id: Optional[int] = Form(None),
-                          db: Session = Depends(get_db)):
-    """Registrar movimiento a traves del servicio unico de inventario.
-
-    Antes esta ruta sumaba o restaba directamente sin validar existencias ni
-    actualizar el costo: un producto con 2 unidades admitia una salida de 100
-    y quedaba en -98 sin dejar rastro ni alerta.
-    """
-    from .domains.inventario.services import InventarioService
-    servicio = InventarioService(db)
-    try:
-        servicio.registrar_movimiento(
-            producto_id=producto_id,
-            tipo=tipo,
-            cantidad=cantidad,
-            costo_unitario=costo_unitario or None,
-            bodega_id=bodega_id,
-            referencia=referencia.strip() or None,
-            usuario_id=request.session.get("usuario_id"),
-            empresa_id=request.session.get("empresa_id") or 1,
-        )
-        db.commit()
-    except ValueError as e:
-        db.rollback()
-        raise HTTPException(400, str(e))
-    return RedirectResponse("/inventario", 303)
-
-
-@app.get("/inventario/kardex/{producto_id}", response_class=HTMLResponse)
-def inventario_kardex(producto_id: int, request: Request, db: Session = Depends(get_db)):
-    """Kardex de un producto: movimientos con saldo y costo resultante."""
-    from .domains.inventario.services import InventarioService
-    producto = db.get(Producto, producto_id)
-    if not producto:
-        raise HTTPException(404, "Producto no encontrado")
-    servicio = InventarioService(db)
-    return templates.TemplateResponse(request, "kardex.html", context(request, db) | {
-        "producto": producto,
-        "movimientos": servicio.kardex(producto_id),
-    })
-
-@app.get("/gastos", response_class=HTMLResponse)
-def gastos(request: Request, db: Session = Depends(get_db)):
-    return templates.TemplateResponse(request, "gastos.html", context(request, db) | {"gastos": db.scalars(select(Gasto).order_by(Gasto.fecha.desc()).limit(100)).all()})
-
-@app.post("/gastos")
-def crear_gasto(fecha: date = Form(...), concepto: str = Form(...), categoria: str = Form(...), valor: Decimal = Form(...), proveedor: str = Form(""), db: Session = Depends(get_db)):
-    if valor <= 0: raise HTTPException(400, "El valor debe ser mayor a cero")
-    db.add(Gasto(fecha=fecha, concepto=concepto.strip(), categoria=categoria.strip(), valor=valor, proveedor=proveedor.strip() or None)); db.commit()
-    return RedirectResponse("/gastos", 303)
-
-@app.get("/clientes", response_class=HTMLResponse)
-def clientes(request: Request, db: Session = Depends(get_db)):
-    return templates.TemplateResponse(request, "clientes.html", context(request, db) | {"clientes": db.scalars(select(Cliente).order_by(Cliente.nombre)).all(), "abonos": db.scalars(select(AbonoCartera).order_by(AbonoCartera.fecha.desc()).limit(20)).all()})
-
-@app.post("/clientes")
-def crear_cliente(nombre: str = Form(...), documento: str = Form(""), telefono: str = Form(""), cupo_credito: Decimal = Form(0), db: Session = Depends(get_db)):
-    db.add(Cliente(nombre=nombre.strip(), documento=documento.strip() or None, telefono=telefono.strip() or None, cupo_credito=cupo_credito)); db.commit()
-    return RedirectResponse("/clientes", 303)
-
-@app.post("/cartera/abonos")
-def registrar_abono(cliente_id: int = Form(...), fecha: date = Form(...), valor: Decimal = Form(...), medio_pago: str = Form("efectivo"), observacion: str = Form(""), db: Session = Depends(get_db)):
-    cliente = db.get(Cliente, cliente_id)
-    if not cliente or valor <= 0: raise HTTPException(400, "Abono inválido")
-    cliente.saldo_cartera = max(Decimal("0"), cliente.saldo_cartera - valor)
-    db.add(AbonoCartera(cliente_id=cliente_id, fecha=fecha, valor=valor, medio_pago=medio_pago, observacion=observacion or None)); db.commit()
-    return RedirectResponse("/clientes", 303)
-
 @app.get("/empleados", response_class=HTMLResponse)
 def empleados(request: Request, db: Session = Depends(get_db)):
-    # Mapa empleado_id -> usuario, para mostrar quien ya tiene acceso al sistema.
-    usuarios_por_empleado = {
-        u.empleado_id: u for u in db.scalars(
-            select(Usuario).where(Usuario.empleado_id.isnot(None))).all()}
-    return templates.TemplateResponse(request, "empleados.html", context(request, db) | {"empleados": db.scalars(select(Empleado).order_by(Empleado.nombre)).all(), "turnos": db.scalars(select(Turno).where(Turno.estado != "anulado").order_by(Turno.entrada.desc()).limit(50)).all(), "turnos_abiertos": {t.empleado_id: t for t in db.scalars(select(Turno).where(Turno.estado.in_(("abierto", "en_receso")))).all()}, "usuarios_por_empleado": usuarios_por_empleado})
+    exigir_rol(request, "administrador")
+    lista_emp = db.scalars(select(Empleado).order_by(Empleado.nombre)).all()
+    usuarios_map = {u.empleado_id: u for u in db.scalars(select(Usuario).where(Usuario.empleado_id != None)).all()}
+    turnos = db.scalars(select(Turno).order_by(Turno.entrada.desc()).limit(20)).all()
+    return templates.TemplateResponse(request, "empleados.html", context(request, db) | {"empleados": lista_emp, "usuarios_por_empleado": usuarios_map, "turnos": turnos})
 
 
 @app.post("/empleados/{empleado_id}/usuario")
+
 def asignar_usuario_empleado(
         empleado_id: int, request: Request,
         usuario: str = Form(...), password: str = Form(""),
         rol: str = Form("mesero"),
         acceso_web: str = Form(None), acceso_app_pedidos: str = Form(None),
         db: Session = Depends(get_db)):
-    """Crea o actualiza el usuario de un empleado y define su acceso.
-
-    Los accesos son casillas: si no vienen en el formulario, quedan en False.
-    Un empleado puede tener usuario sin acceso a ninguna app (solo marca turnos).
-    """
+    """Crea o actualiza el usuario de un empleado y define su acceso."""
     exigir_rol(request, "administrador")
     from .domains.auditoria.services import AuditoriaService
+
     empleado = db.get(Empleado, empleado_id)
     if not empleado:
         raise HTTPException(404, "Empleado no encontrado")
@@ -1367,7 +1311,8 @@ async def subir_foto_empleado(
 @app.post("/empleados")
 def crear_empleado(nombre: str = Form(...), documento: str = Form(...), cargo: str = Form(...), salario: Decimal = Form(0), tipo_documento: str = Form("CC"), fecha_ingreso: date | None = Form(None), tipo_contrato: str = Form("indefinido"), eps: str = Form(""), pension: str = Form(""), arl: str = Form(""), db: Session = Depends(get_db)):
     if db.scalar(select(Empleado).where(Empleado.documento == documento.strip())): raise HTTPException(400, "El documento ya existe")
-    db.add(Empleado(nombre=nombre.strip(), documento=documento.strip(), cargo=cargo.strip(), salario=salario, tipo_documento=tipo_documento, fecha_ingreso=fecha_ingreso, tipo_contrato=tipo_contrato, eps=eps.strip() or None, pension=pension.strip() or None, arl=arl.strip() or None)); db.commit()
+    emp_id = _obtener_empresa_id(db)
+    db.add(Empleado(empresa_id=emp_id, nombre=nombre.strip(), documento=documento.strip(), cargo=cargo.strip(), salario=salario, tipo_documento=tipo_documento, fecha_ingreso=fecha_ingreso, tipo_contrato=tipo_contrato, eps=eps.strip() or None, pension=pension.strip() or None, arl=arl.strip() or None)); db.commit()
     return RedirectResponse("/empleados", 303)
 
 @app.post("/turnos/entrada")
@@ -1453,7 +1398,8 @@ def crear_receta(producto_id: int = Form(...), tipo_receta: str = Form("producci
     if not producto or rendimiento <= 0 or tipo_receta not in ("produccion", "venta"): raise HTTPException(400, "Receta inválida")
     if tipo_receta == "produccion" and producto.tipo != "elaborado": raise HTTPException(400, "Una receta de producción debe generar un producto elaborado")
     if tipo_receta == "venta" and producto.tipo != "venta": raise HTTPException(400, "Una receta de venta debe corresponder a un producto de venta")
-    db.add(Receta(producto_id=producto_id, rendimiento=rendimiento, instrucciones=instrucciones or None, tipo_receta=tipo_receta)); db.commit()
+    emp_id = _obtener_empresa_id(db)
+    db.add(Receta(empresa_id=emp_id, producto_id=producto_id, rendimiento=rendimiento, instrucciones=instrucciones or None, tipo_receta=tipo_receta)); db.commit()
     return RedirectResponse("/produccion", 303)
 
 @app.post("/produccion/recetas/{receta_id}/insumos")
@@ -1526,9 +1472,10 @@ def domicilios(request: Request, db: Session = Depends(get_db)):
 @app.post("/domicilios")
 def crear_domicilio(request: Request, cliente_id: int = Form(...), direccion: str = Form(...), barrio: str = Form(""), contacto: str = Form(""), repartidor_id: int | None = Form(None), cargo_envio: Decimal = Form(0), db: Session = Depends(get_db)):
     if not db.get(Cliente, cliente_id) or not direccion.strip() or cargo_envio < 0: raise HTTPException(400, "Datos de domicilio inválidos")
-    venta = Venta(cliente_id=cliente_id, empleado_id=request.session.get("empleado_id"), canal="domicilio", cargo_envio=cargo_envio)
+    emp_id = _obtener_empresa_id(db, request)
+    venta = Venta(empresa_id=emp_id, cliente_id=cliente_id, empleado_id=request.session.get("empleado_id"), canal="domicilio", cargo_envio=cargo_envio)
     db.add(venta); db.flush()
-    db.add(Domicilio(venta_id=venta.id, direccion=direccion.strip(), barrio=barrio.strip() or None, contacto=contacto.strip() or None, repartidor_id=repartidor_id or None))
+    db.add(Domicilio(empresa_id=emp_id, venta_id=venta.id, direccion=direccion.strip(), barrio=barrio.strip() or None, contacto=contacto.strip() or None, repartidor_id=repartidor_id or None))
     db.commit(); return RedirectResponse(f"/pedidos/{venta.id}", 303)
 
 @app.get("/pedidos/{venta_id}", response_class=HTMLResponse)
@@ -1554,9 +1501,10 @@ def estado_domicilio(domicilio_id: int, estado: str = Form(...), repartidor_id: 
     db.commit(); return RedirectResponse("/domicilios", 303)
 
 @app.post("/caja/abrir")
-def abrir_caja(base_inicial: Decimal = Form(0), db: Session = Depends(get_db)):
+def abrir_caja(request: Request, base_inicial: Decimal = Form(0), db: Session = Depends(get_db)):
+    emp_id = _obtener_empresa_id(db, request)
     abierta = db.scalar(select(SesionCaja).where(SesionCaja.cierre == None))
-    if not abierta: db.add(SesionCaja(base_inicial=base_inicial)); db.commit()
+    if not abierta: db.add(SesionCaja(empresa_id=emp_id, usuario_id=request.session.get("usuario_id"), base_inicial=base_inicial)); db.commit()
     return RedirectResponse("/caja", 303)
 
 @app.post("/caja/{sesion_id}/cerrar")
@@ -1570,6 +1518,7 @@ def cerrar_caja(sesion_id: int, efectivo_declarado: Decimal = Form(...), observa
 def configuracion(request: Request, db: Session = Depends(get_db)):
     exigir_rol(request, "administrador")
     return templates.TemplateResponse(request, "configuracion.html", context(request, db))
+
 
 
 @app.get("/impresoras", response_class=HTMLResponse)
@@ -1770,7 +1719,7 @@ def compras(request: Request, db: Session = Depends(get_db)):
     from .domains.compras.services import ComprasService
 
     servicio = ComprasService(db)
-    empresa_id = request.session.get("empresa_id") or 1
+    empresa_id = _obtener_empresa_id(db, request)
 
     filas = db.execute(
         select(Compra, Proveedor.nombre, Proveedor.obligado_facturar)
@@ -1801,7 +1750,15 @@ def compras(request: Request, db: Session = Depends(get_db)):
 @app.post("/proveedores")
 def crear_proveedor(request: Request, nombre: str = Form(...), tipo_documento: str = Form("NIT"), documento: str = Form(...), telefono: str = Form(""), email: str = Form(""), obligado_facturar: bool = Form(False), db: Session = Depends(get_db)):
     exigir_rol(request, "administrador", "caja")
-    db.add(Proveedor(nombre=nombre.strip(), tipo_documento=tipo_documento, documento=documento.strip(), telefono=telefono.strip() or None, email=email.strip() or None, obligado_facturar=obligado_facturar)); db.commit(); return RedirectResponse("/compras", 303)
+    emp_id = _obtener_empresa_id(db, request)
+    try:
+        db.add(Proveedor(empresa_id=emp_id, nombre=nombre.strip(), tipo_documento=tipo_documento, documento=documento.strip(), telefono=telefono.strip() or None, email=email.strip() or None, obligado_facturar=obligado_facturar))
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        logger.error("Error creando proveedor: %s", e, exc_info=True)
+        return RedirectResponse("/compras?error=Error+creando+proveedor", 303)
+    return RedirectResponse("/compras", 303)
 
 @app.post("/compras")
 def registrar_compra(request: Request, proveedor_id: int = Form(...),
@@ -1814,17 +1771,12 @@ def registrar_compra(request: Request, proveedor_id: int = Form(...),
                      forma_pago: str = Form("contado"),
                      valor: Optional[Decimal] = Form(None),
                      db: Session = Depends(get_db)):
-    """Registrar factura de compra a traves de ComprasService.
-
-    Antes esta ruta insertaba una fila plana con UN producto y calculaba el
-    costo por su cuenta. Ahora delega en el servicio, que lleva el desglose
-    fiscal, el kardex y permite anular.
-    """
+    """Registrar factura de compra a traves de ComprasService."""
     exigir_rol(request, "administrador", "caja")
     from .domains.compras.services import ComprasService
 
     servicio = ComprasService(db)
-    empresa_id = request.session.get("empresa_id") or 1
+    empresa_id = _obtener_empresa_id(db, request)
     usuario_id = request.session.get("usuario_id")
 
     try:
@@ -1841,7 +1793,6 @@ def registrar_compra(request: Request, proveedor_id: int = Form(...),
                 "iva_porcentaje": iva_porcentaje,
             }]
         else:
-            # Gasto sin inventario: se registra como servicio sin producto.
             raise HTTPException(
                 400, "Indique producto y cantidad. Para gastos sin inventario use /gastos")
 
@@ -1854,6 +1805,7 @@ def registrar_compra(request: Request, proveedor_id: int = Form(...),
         db.rollback()
         raise HTTPException(400, str(e))
     return RedirectResponse("/compras", 303)
+
 
 
 @app.post("/compras/{compra_id}/anular")
@@ -1966,12 +1918,18 @@ def usuarios(request: Request, db: Session = Depends(get_db)):
 @app.post("/usuarios")
 def crear_usuario(request: Request, usuario: str = Form(...), password: str = Form(...), rol: str = Form(...), empleado_id: int | None = Form(None), db: Session = Depends(get_db)):
     exigir_rol(request, "administrador")
-    # El rol debe existir en el RBAC (parametrizable), no en una lista fija.
     from .services.rbac_service import RolService
     if not RolService(db).rol_por_nombre_flexible(rol) or len(password) < 8:
         raise HTTPException(400, "Rol inexistente o contraseña menor a 8 caracteres")
     if db.scalar(select(Usuario).where(Usuario.usuario == usuario.strip())): raise HTTPException(400, "El usuario ya existe")
-    db.add(Usuario(usuario=usuario.strip(), password_hash=passwords.hash(password), rol=rol, empleado_id=empleado_id or None)); db.commit()
+    emp_id = _obtener_empresa_id(db, request)
+    try:
+        db.add(Usuario(empresa_id=emp_id, usuario=usuario.strip(), password_hash=passwords.hash(password), rol=rol, empleado_id=empleado_id or None))
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        logger.error("Error creando usuario: %s", e, exc_info=True)
+        return RedirectResponse("/usuarios?error=Error+creando+usuario", 303)
     return RedirectResponse("/usuarios", 303)
 
 @app.post("/usuarios/{usuario_id}/estado")
@@ -1987,6 +1945,8 @@ def cocina(request: Request, db: Session = Depends(get_db)):
     exigir_rol(request, "administrador", "cocina")
     filas = db.execute(select(DetalleVenta, Producto.nombre, Mesa.nombre.label("mesa"), Venta.fecha).join(Producto, Producto.id == DetalleVenta.producto_id).join(Venta, Venta.id == DetalleVenta.venta_id).outerjoin(Mesa, Mesa.id == Venta.mesa_id).where(DetalleVenta.estado_cocina.in_(["pendiente", "preparando", "listo"]), Venta.estado == "abierta").order_by(Venta.fecha)).all()
     return templates.TemplateResponse(request, "cocina.html", context(request, db) | {"filas": filas})
+
+
 
 @app.post("/cocina/{detalle_id}/estado")
 def estado_cocina(detalle_id: int, request: Request, estado: str = Form(...), db: Session = Depends(get_db)):
