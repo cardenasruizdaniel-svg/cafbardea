@@ -158,6 +158,32 @@ class ProduccionService:
             "lineas": lineas,
         }
 
+    def recalcular_costo_producto(self, producto_id: int) -> Decimal:
+        """Recalcula el costo unitario de un producto con receta y lo guarda."""
+        receta = self.db.scalar(select(Receta).where(Receta.producto_id == producto_id))
+        if not receta:
+            return CERO
+        c = self.costear_receta(receta.id)
+        costo_unitario = c["costo_unitario"]
+        prod = self.db.get(Producto, producto_id)
+        if prod:
+            prod.costo = costo_unitario
+            self.db.flush()
+        return costo_unitario
+
+    def recalcular_todos_los_costos(self) -> int:
+        """Recalcula en cascada los costos de todas las recetas registradas."""
+        recetas = self.db.scalars(select(Receta)).all()
+        if not recetas:
+            return 0
+        actualizados = 0
+        for _ in range(3):
+            for r in recetas:
+                if r.producto_id:
+                    self.recalcular_costo_producto(r.producto_id)
+                    actualizados += 1
+        return actualizados
+
     # ==================================================================
     # EJECUCION
     # ==================================================================

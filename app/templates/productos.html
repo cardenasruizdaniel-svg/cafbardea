@@ -71,6 +71,17 @@
 	<h2>Editar o desactivar productos</h2>
 	{% for p in productos %}
 	<div style="border-bottom:1px solid #e2e8f0; padding-bottom:12px; margin-bottom:12px;">
+		<div style="display:flex; gap:8px; align-items:center; margin-bottom:6px; font-size:12px;">
+			{% if p.tipo == 'insumo' %}
+			<span style="background:#e0f2fe; color:#0369a1; padding:2px 8px; border-radius:6px; font-weight:600;">📦 Materia Prima / Insumo</span>
+			{% elif p.tipo == 'elaborado' %}
+			<span style="background:#fef3c7; color:#b45309; padding:2px 8px; border-radius:6px; font-weight:600;">🍳 Producto Procesado</span>
+			<a href="/produccion" style="color:#0f6b4a; font-weight:600; text-decoration:none;">📖 Ver/Configurar Escandallo (Receta) →</a>
+			{% else %}
+			<span style="background:#dcfce7; color:#15803d; padding:2px 8px; border-radius:6px; font-weight:600;">🏷️ Venta Directa</span>
+			<a href="/produccion" style="color:#0f6b4a; font-weight:600; text-decoration:none; font-size:11px;">📖 Configurar receta de componentes →</a>
+			{% endif %}
+		</div>
 		<form class="product-row" action="/productos/{{ p.id }}/editar" method="post">
 			<input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 			<span class="code">{{ p.codigo }}</span>

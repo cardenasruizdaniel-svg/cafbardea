@@ -1923,6 +1923,8 @@ def registrar_compra(request: Request, proveedor_id: int = Form(...),
             proveedor_id, lineas, empresa_id=empresa_id, usuario_id=usuario_id,
             numero_documento=numero_documento, concepto=concepto.strip(),
             fecha=fecha, forma_pago=forma_pago)
+        from .domains.produccion.services import ProduccionService
+        ProduccionService(db).recalcular_todos_los_costos()
         db.commit()
     except ValueError as e:
         db.rollback()

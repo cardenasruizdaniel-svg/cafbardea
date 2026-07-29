@@ -64,8 +64,22 @@
     <input name="concepto" placeholder="Concepto" required>
     <input name="numero_documento" placeholder="N.º factura">
     <select name="producto_id" required>
-      <option value="">Producto…</option>
-      {% for p in productos %}<option value="{{p.id}}">{{p.codigo}} · {{p.nombre}}</option>{% endfor %}
+      <option value="">Producto a comprar…</option>
+      <optgroup label="📦 Materias Primas / Insumos">
+        {% for p in productos if p.tipo == 'insumo' %}
+        <option value="{{p.id}}">{{p.codigo}} · {{p.nombre}} (${{ '{:,.0f}'.format(p.costo) }})</option>
+        {% endfor %}
+      </optgroup>
+      <optgroup label="🍳 Productos Procesados / Elaborados">
+        {% for p in productos if p.tipo == 'elaborado' %}
+        <option value="{{p.id}}">{{p.codigo}} · {{p.nombre}} (${{ '{:,.0f}'.format(p.costo) }})</option>
+        {% endfor %}
+      </optgroup>
+      <optgroup label="🏷️ Venta Directa">
+        {% for p in productos if p.tipo == 'venta' %}
+        <option value="{{p.id}}">{{p.codigo}} · {{p.nombre}} (${{ '{:,.0f}'.format(p.costo) }})</option>
+        {% endfor %}
+      </optgroup>
     </select>
     <input name="cantidad" type="number" step="0.001" min="0.001" placeholder="Cantidad" required>
     <input name="costo_unitario" type="number" step="0.01" min="0" placeholder="Costo unitario">

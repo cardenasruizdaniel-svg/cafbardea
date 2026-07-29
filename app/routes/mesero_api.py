@@ -42,7 +42,28 @@ def _exigir_sesion(request: Request):
 def mesero_mesas(request: Request, db: Session = Depends(get_db)):
     """Plano de mesas del mesero (su propio modulo, no la web)."""
     _exigir_sesion(request)
-    zonas = db.scalars(select(Zona).order_by(Zona.orden)).all()
+    from sqlalchemy.orm import selectinload
+    zonas = db.scalars(
+        select(Zona).options(selectinload(Zona.mesas)).order_by(Zona.orden)
+    ).all()
+
+    # Garantizar que mesas huérfanas se asignen a una zona visible
+    mesas_sin_zona = db.scalars(select(Mesa).where(Mesa.zona_id.is_(None))).all()
+    if mesas_sin_zona:
+        if not zonas:
+            zona_def = Zona(nombre="Zona Principal", orden=1)
+            db.add(zona_def)
+            db.commit()
+            db.refresh(zona_def)
+            zonas = [zona_def]
+        z_def = zonas[0]
+        for m in mesas_sin_zona:
+            m.zona_id = z_def.id
+        db.commit()
+        zonas = db.scalars(
+            select(Zona).options(selectinload(Zona.mesas)).order_by(Zona.orden)
+        ).all()
+
     return _templates.TemplateResponse(request, "mesero_mesas.html", {
         "request": request,
         "zonas": zonas,

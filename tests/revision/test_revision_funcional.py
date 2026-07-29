@@ -168,3 +168,56 @@ class TestZonasYCategorias:
             db_session.refresh(prod)
             assert prod.categoria_id is None
 
+    def test_costo_receta_actualizado_al_comprar(self, client_autenticado, db_session):
+        from decimal import Decimal
+        from app.models import Producto, Receta, RecetaDetalle, Proveedor
+        # Crear insumo A y producto elaborado
+        insumo = Producto(codigo="INS-1", nombre="Café Grano", tipo="insumo", costo=Decimal("1000"), existencias=Decimal("10"))
+        elaborado = Producto(codigo="ELAB-1", nombre="Café Espresso", tipo="elaborado", costo=Decimal("0"), precio_venta=Decimal("5000"))
+        prov = Proveedor(nombre="Proveedor Test", documento="123")
+        db_session.add_all([insumo, elaborado, prov])
+        db_session.commit()
+
+        receta = Receta(producto_id=elaborado.id, rendimiento=Decimal("1"), tipo_receta="produccion")
+        db_session.add(receta)
+        db_session.commit()
+
+        detalle = RecetaDetalle(receta_id=receta.id, insumo_id=insumo.id, cantidad=Decimal("2"), merma_porcentaje=Decimal("0"))
+        db_session.add(detalle)
+        db_session.commit()
+
+        # Recalcular costo inicial
+        from app.domains.produccion.services import ProduccionService
+        ProduccionService(db_session).recalcular_todos_los_costos()
+        db_session.refresh(elaborado)
+        assert elaborado.costo == Decimal("2000.00")
+
+        # Registrar compra con nuevo precio de insumo ($2,000)
+        import re
+        tok = re.search(r'name="csrf_token" value="([^"]+)"', client_autenticado.get("/compras").text).group(1)
+        r = client_autenticado.post("/compras", data={
+            "proveedor_id": str(prov.id), "fecha": "2026-07-29", "concepto": "Compra Grano",
+            "producto_id": str(insumo.id), "cantidad": "10", "costo_unitario": "2000",
+            "csrf_token": tok
+        }, follow_redirects=False)
+        assert r.status_code == 303
+        db_session.refresh(elaborado)
+        # El costo del insumo pasa a promedio ponderado $1,500. El elaborado pasa a 2x $1,500 = $3,000
+        assert elaborado.costo == Decimal("3000.00")
+
+    def test_mobile_mesero_vistas(self, client_autenticado, db_session):
+        from app.models import Mesa
+        mesa = db_session.query(Mesa).first()
+
+        # Cargar plano mobile
+        r1 = client_autenticado.get("/mobile/mesas")
+        assert r1.status_code == 200
+        assert "Mesas" in r1.text
+
+        # Cargar comanda mobile para la mesa
+        if mesa:
+            r2 = client_autenticado.get(f"/mobile/comanda/{mesa.id}")
+            assert r2.status_code == 200
+            assert mesa.nombre in r2.text
+
+
