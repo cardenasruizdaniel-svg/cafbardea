@@ -123,3 +123,48 @@ class TestEsquemaReparado:
         z = db_session.query(Zona).filter_by(nombre="Con Orden").first()
         assert z is not None
         assert z.orden is not None  # el orden se asigna sin fallar
+
+
+class TestZonasYCategorias:
+    def test_editar_zona(self, client_autenticado, db_session):
+        from app.models import Zona
+        z = db_session.query(Zona).first()
+        r = client_autenticado.post(f"/zonas/{z.id}/editar",
+                                    data={"nombre": "Zona Editada VIP"},
+                                    follow_redirects=False)
+        assert r.status_code == 303
+        db_session.refresh(z)
+        assert z.nombre == "Zona Editada VIP"
+
+    def test_crear_editar_eliminar_categoria(self, client_autenticado, db_session):
+        from app.models import Categoria, Producto
+        # Crear
+        r = client_autenticado.post("/productos/categorias",
+                                    data={"nombre": "Bebidas Exóticas"},
+                                    follow_redirects=False)
+        assert r.status_code == 303
+        cat = db_session.query(Categoria).filter_by(nombre="Bebidas Exóticas").first()
+        assert cat is not None
+
+        # Editar
+        r = client_autenticado.post(f"/productos/categorias/{cat.id}/editar",
+                                    data={"nombre": "Bebidas Premium"},
+                                    follow_redirects=False)
+        assert r.status_code == 303
+        db_session.refresh(cat)
+        assert cat.nombre == "Bebidas Premium"
+
+        # Eliminar (los productos deben pasar a sin categoria)
+        prod = db_session.query(Producto).first()
+        if prod:
+            prod.categoria_id = cat.id
+            db_session.commit()
+
+        r = client_autenticado.post(f"/productos/categorias/{cat.id}/eliminar",
+                                    follow_redirects=False)
+        assert r.status_code == 303
+        assert db_session.query(Categoria).filter_by(id=cat.id).first() is None
+        if prod:
+            db_session.refresh(prod)
+            assert prod.categoria_id is None
+

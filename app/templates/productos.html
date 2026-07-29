@@ -1,1 +1,118 @@
-{% extends "base.html" %}{% block content %}<header><div><p class="eyebrow">GESTIÓN DE CATÁLOGO Y PRECIOS</p><h1>Productos, Categorías y Precios</h1></div></header><section class="panel"><h2>Nueva categoría</h2><form class="inline-form" action="/productos/categorias" method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input name="nombre" placeholder="Ej. Bebidas frías" required><button>Agregar categoría</button></form></section><section class="panel"><h2>Nuevo producto</h2><form class="form-grid" action="/productos" method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input name="codigo" placeholder="Código" required><input name="nombre" placeholder="Nombre comercial" required><select name="categoria_id"><option value="">Sin categoría</option>{%for c in categorias%}<option value="{{c.id}}">{{c.nombre}}</option>{%endfor%}</select><select name="tipo"><option value="venta">Venta directa</option><option value="insumo">Insumo</option><option value="elaborado">Producto elaborado</option></select><input name="precio_venta" type="number" min="0" step="0.01" placeholder="Precio venta"><input name="costo" type="number" min="0" step="0.01" placeholder="Costo"><input name="existencias" type="number" min="0" step="0.001" placeholder="Saldo inicial"><input name="stock_minimo" type="number" min="0" step="0.001" placeholder="Stock mínimo"><button>Crear producto</button></form></section><section class="panel"><h2>Editar o desactivar productos</h2>{%for p in productos%}<form class="product-row" action="/productos/{{p.id}}/editar" method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><span class="code">{{p.codigo}}</span><input name="nombre" value="{{p.nombre}}" required><input name="precio_venta" type="number" min="0" step="0.01" value="{{p.precio_venta}}"><input name="costo" type="number" min="0" step="0.01" value="{{p.costo}}"><input name="stock_minimo" type="number" min="0" step="0.001" value="{{p.stock_minimo}}"><button>Guardar</button></form><form class="product-row" action="/productos/{{p.id}}/impresion" method="post" style="opacity:.9"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><span class="muted" style="font-size:12px">Impresión:</span><select name="impresora_id"><option value="">Impresora: (según grupo)</option>{%for i in impresoras%}<option value="{{i.id}}" {%if p.impresora_id==i.id%}selected{%endif%}>{{i.nombre}}</option>{%endfor%}</select><select name="grupo_impresion_id"><option value="">Grupo: (ninguno)</option>{%for g in grupos_impresion%}<option value="{{g.id}}" {%if p.grupo_impresion_id==g.id%}selected{%endif%}>{{g.nombre}}</option>{%endfor%}</select><button class="secondary">Asignar destino</button></form><form class="state-form" action="/productos/{{p.id}}/estado" method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><span class="muted">{{'Activo' if p.activo else 'Inactivo'}} · saldo {{p.existencias}}</span><button class="secondary">{{'Desactivar' if p.activo else 'Activar'}}</button></form>{%endfor%}</section>{%endblock%}
+{% extends "base.html" %}
+{% block content %}
+<header>
+	<div>
+		<p class="eyebrow">GESTIÓN DE CATÁLOGO Y PRECIOS</p>
+		<h1>Productos, Categorías y Precios</h1>
+	</div>
+</header>
+
+<!-- Categorías de productos -->
+<section class="panel">
+	<h2>Gestión de Categorías</h2>
+	<form class="inline-form" action="/productos/categorias" method="post" style="margin-bottom:16px;">
+		<input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+		<input name="nombre" placeholder="Nueva categoría (ej. Bebidas frías)" required>
+		<button>Agregar categoría</button>
+	</form>
+
+	{% if categorias %}
+	<div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap:12px; margin-top:12px;">
+		{% for c in categorias %}
+		<div style="display:flex; align-items:center; justify-content:space-between; padding:10px 14px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px;">
+			<span style="font-weight:600; color:#1e293b;">📁 {{ c.nombre }}</span>
+			<div style="display:flex; gap:6px;">
+				<form action="/productos/categorias/{{ c.id }}/editar" method="post" style="display:inline;" onsubmit="const n = prompt('Nuevo nombre para la categoría:', '{{ c.nombre }}'); if(!n) return false; this.nombre.value = n;">
+					<input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+					<input type="hidden" name="nombre" value="{{ c.nombre }}">
+					<button type="submit" class="secondary" style="font-size:12px; padding:4px 8px; border-radius:6px; border:1px solid #cbd5e1; background:#fff; cursor:pointer;">✎ Renombrar</button>
+				</form>
+				<form action="/productos/categorias/{{ c.id }}/eliminar" method="post" style="display:inline;" onsubmit="return confirm('¿Eliminar la categoría {{ c.nombre }}? Sus productos pasarán a Sin categoría.');">
+					<input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+					<button type="submit" class="secondary" style="font-size:12px; padding:4px 8px; background:#ef4444; color:#fff; border:none; border-radius:6px; cursor:pointer;">🗑️ Eliminar</button>
+				</form>
+			</div>
+		</div>
+		{% endfor %}
+	</div>
+	{% else %}
+	<p class="muted" style="font-size:14px; margin-top:8px;">No hay categorías creadas aún.</p>
+	{% endif %}
+</section>
+
+<!-- Crear nuevo producto -->
+<section class="panel">
+	<h2>Nuevo producto</h2>
+	<form class="form-grid" action="/productos" method="post">
+		<input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+		<input name="codigo" placeholder="Código" required>
+		<input name="nombre" placeholder="Nombre comercial" required>
+		<select name="categoria_id">
+			<option value="">Sin categoría</option>
+			{% for c in categorias %}
+			<option value="{{ c.id }}">{{ c.nombre }}</option>
+			{% endfor %}
+		</select>
+		<select name="tipo">
+			<option value="venta">Venta directa</option>
+			<option value="insumo">Insumo</option>
+			<option value="elaborado">Producto elaborado</option>
+		</select>
+		<input name="precio_venta" type="number" min="0" step="0.01" placeholder="Precio venta">
+		<input name="costo" type="number" min="0" step="0.01" placeholder="Costo">
+		<input name="existencias" type="number" min="0" step="0.001" placeholder="Saldo inicial">
+		<input name="stock_minimo" type="number" min="0" step="0.001" placeholder="Stock mínimo">
+		<button>Crear producto</button>
+	</form>
+</section>
+
+<!-- Lista y edición de productos -->
+<section class="panel">
+	<h2>Editar o desactivar productos</h2>
+	{% for p in productos %}
+	<div style="border-bottom:1px solid #e2e8f0; padding-bottom:12px; margin-bottom:12px;">
+		<form class="product-row" action="/productos/{{ p.id }}/editar" method="post">
+			<input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+			<span class="code">{{ p.codigo }}</span>
+			<input name="nombre" value="{{ p.nombre }}" required placeholder="Nombre">
+			<select name="categoria_id">
+				<option value="">Sin categoría</option>
+				{% for c in categorias %}
+				<option value="{{ c.id }}" {% if p.categoria_id == c.id %}selected{% endif %}>{{ c.nombre }}</option>
+				{% endfor %}
+			</select>
+			<input name="precio_venta" type="number" min="0" step="0.01" value="{{ p.precio_venta }}" title="Precio venta">
+			<input name="costo" type="number" min="0" step="0.01" value="{{ p.costo }}" title="Costo">
+			<input name="stock_minimo" type="number" min="0" step="0.001" value="{{ p.stock_minimo }}" title="Stock mínimo">
+			<button>Guardar</button>
+		</form>
+
+		<div style="display:flex; gap:12px; align-items:center; margin-top:6px; flex-wrap:wrap;">
+			<form class="product-row" action="/productos/{{ p.id }}/impresion" method="post" style="opacity:.9; margin:0;">
+				<input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+				<span class="muted" style="font-size:12px">Impresión:</span>
+				<select name="impresora_id">
+					<option value="">Impresora: (según grupo)</option>
+					{% for i in impresoras %}
+					<option value="{{ i.id }}" {% if p.impresora_id == i.id %}selected{% endif %}>{{ i.nombre }}</option>
+					{% endfor %}
+				</select>
+				<select name="grupo_impresion_id">
+					<option value="">Grupo: (ninguno)</option>
+					{% for g in grupos_impresion %}
+					<option value="{{ g.id }}" {% if p.grupo_impresion_id == g.id %}selected{% endif %}>{{ g.nombre }}</option>
+					{% endfor %}
+				</select>
+				<button class="secondary">Asignar destino</button>
+			</form>
+
+			<form class="state-form" action="/productos/{{ p.id }}/estado" method="post" style="margin:0;">
+				<input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+				<span class="muted" style="font-size:12px;">{{ 'Activo' if p.activo else 'Inactivo' }} · saldo {{ p.existencias }}</span>
+				<button class="secondary" style="font-size:12px;">{{ 'Desactivar' if p.activo else 'Activar' }}</button>
+			</form>
+		</div>
+	</div>
+	{% endfor %}
+</section>
+{% endblock %}

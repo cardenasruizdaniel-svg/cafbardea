@@ -456,9 +456,24 @@
 
 	{% for z in zonas %}
 	<section class="zone-card">
-		<div class="zone-header">
-			<h2>{{ z.nombre }}</h2>
-			<span class="zone-count">{{ z.mesas|length }} mesa{{ '' if z.mesas|length == 1 else 's' }}</span>
+		<div class="zone-header" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+			<div style="display:flex; align-items:center; gap:10px;">
+				<h2>{{ z.nombre }}</h2>
+				<span class="zone-count">{{ z.mesas|length }} mesa{{ '' if z.mesas|length == 1 else 's' }}</span>
+			</div>
+			<div class="zone-actions" style="display:flex; align-items:center; gap:6px;">
+				<form action="/zonas/{{ z.id }}/editar" method="post" style="display:inline-flex; gap:4px;" onsubmit="const n = prompt('Nuevo nombre para la zona:', '{{ z.nombre }}'); if(!n) return false; this.nombre.value = n;">
+					<input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+					<input type="hidden" name="nombre" value="{{ z.nombre }}">
+					<button type="submit" class="button secondary" style="font-size:12px; padding:4px 10px; border-radius:6px; border:1px solid #cbd5e1; background:#fff; cursor:pointer;">✎ Renombrar</button>
+				</form>
+				{% if not z.mesas %}
+				<form action="/zonas/{{ z.id }}/eliminar" method="post" style="display:inline;" onsubmit="return confirm('¿Eliminar la zona {{ z.nombre }}?');">
+					<input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+					<button type="submit" class="button danger" style="font-size:12px; padding:4px 10px; background:#ef4444; color:#fff; border:none; border-radius:6px; cursor:pointer;">🗑️ Eliminar</button>
+				</form>
+				{% endif %}
+			</div>
 		</div>
 
 		<div class="floor">
@@ -572,6 +587,10 @@
 					moved = false;
 				}, 0);
 			};
+
+			tableEl.addEventListener('dragstart', (event) => {
+				event.preventDefault();
+			});
 
 			tableEl.addEventListener('pointerdown', (event) => {
 				if (event.button !== 0) return;

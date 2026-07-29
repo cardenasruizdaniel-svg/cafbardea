@@ -14,7 +14,7 @@ from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.middleware.cors import CORSMiddleware
 from passlib.context import CryptContext
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 from .database import Base, engine, get_db
 from .models import *
@@ -886,6 +886,22 @@ def crear_zona(request: Request, nombre: str = Form(""),
     return RedirectResponse("/mesas", 303)
 
 
+@app.post("/zonas/{zona_id}/editar")
+def editar_zona(zona_id: int, request: Request, nombre: str = Form(...),
+                db: Session = Depends(get_db)):
+    """Renombra una zona existente."""
+    exigir_rol(request, "administrador", "gerente", "caja")
+    zona = db.get(Zona, zona_id)
+    if not zona:
+        raise HTTPException(404, "Zona no encontrada")
+    nombre_clean = nombre.strip()
+    if nombre_clean:
+        zona.nombre = nombre_clean
+        db.commit()
+    return RedirectResponse("/mesas", 303)
+
+
+
 @app.post("/zonas/{zona_id}/eliminar")
 def eliminar_zona(zona_id: int, request: Request, db: Session = Depends(get_db)):
     """Elimina una zona solo si no tiene mesas."""
@@ -950,7 +966,7 @@ async def guardar_layout_mesa(mesa_id: int, request: Request,
 
     Recibe JSON del editor visual. Solo administradores y gerentes.
     """
-    exigir_rol(request, "administrador", "gerente")
+    exigir_rol(request, "administrador", "gerente", "caja")
     mesa = db.get(Mesa, mesa_id)
     if not mesa:
         raise HTTPException(404, "Mesa no encontrada")
@@ -1213,13 +1229,47 @@ def crear_categoria(request: Request, nombre: str = Form(...), db: Session = Dep
     nombre = nombre.strip()
     try:
         if nombre and not db.scalar(select(Categoria).where(Categoria.nombre == nombre)):
-            db.add(Categoria(empresa_id=emp_id, nombre=nombre))
+            db.add(Categoria(nombre=nombre))
             db.commit()
     except Exception as e:
         db.rollback()
         logger.error("Error creando categoría: %s", e, exc_info=True)
         return RedirectResponse("/productos?error=Error+creando+categoria", 303)
     return RedirectResponse("/productos", 303)
+
+
+@app.post("/productos/categorias/{categoria_id}/editar")
+def editar_categoria(categoria_id: int, request: Request, nombre: str = Form(...),
+                     db: Session = Depends(get_db)):
+    """Renombra una categoría existente."""
+    exigir_rol(request, "administrador", "gerente")
+    cat = db.get(Categoria, categoria_id)
+    if not cat:
+        raise HTTPException(404, "Categoría no encontrada")
+    nombre_clean = nombre.strip()
+    if nombre_clean:
+        cat.nombre = nombre_clean
+        db.commit()
+    return RedirectResponse("/productos", 303)
+
+
+@app.post("/productos/categorias/{categoria_id}/eliminar")
+def eliminar_categoria(categoria_id: int, request: Request,
+                       db: Session = Depends(get_db)):
+    """Elimina una categoría y desasigna sus productos (categoria_id = None)."""
+    exigir_rol(request, "administrador", "gerente")
+    cat = db.get(Categoria, categoria_id)
+    if not cat:
+        raise HTTPException(404, "Categoría no encontrada")
+    db.execute(
+        update(Producto)
+        .where(Producto.categoria_id == categoria_id)
+        .values(categoria_id=None)
+    )
+    db.delete(cat)
+    db.commit()
+    return RedirectResponse("/productos", 303)
+
 
 @app.post("/productos")
 def crear_producto(request: Request, codigo: str = Form(...), nombre: str = Form(...), categoria_id: int | None = Form(None), tipo: str = Form("venta"), precio_venta: Decimal = Form(0), costo: Decimal = Form(0), existencias: Decimal = Form(0), stock_minimo: Decimal = Form(0), db: Session = Depends(get_db)):
@@ -1244,10 +1294,11 @@ def crear_producto(request: Request, codigo: str = Form(...), nombre: str = Form
     return RedirectResponse("/productos", 303)
 
 @app.post("/productos/{producto_id}/editar")
-def editar_producto(producto_id: int, nombre: str = Form(...), precio_venta: Decimal = Form(...), costo: Decimal = Form(...), stock_minimo: Decimal = Form(...), db: Session = Depends(get_db)):
+def editar_producto(producto_id: int, nombre: str = Form(...), precio_venta: Decimal = Form(...), costo: Decimal = Form(...), stock_minimo: Decimal = Form(...), categoria_id: int | None = Form(None), db: Session = Depends(get_db)):
     producto = db.get(Producto, producto_id)
     if not producto: raise HTTPException(404)
     producto.nombre, producto.precio_venta, producto.costo, producto.stock_minimo = nombre.strip(), precio_venta, costo, stock_minimo
+    producto.categoria_id = categoria_id or None
     db.commit(); return RedirectResponse("/productos", 303)
 
 @app.post("/productos/{producto_id}/impresion")
