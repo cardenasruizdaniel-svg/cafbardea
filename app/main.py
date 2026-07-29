@@ -1911,6 +1911,78 @@ def actualizar_empresa(request: Request, nombre: str = Form(...), nit: str = For
     empresa.prefijo_nomina, empresa.consecutivo_nomina, empresa.software_nomina_id = prefijo_nomina.strip().upper()[:12] or "NE", max(1, consecutivo_nomina), software_nomina_id.strip() or None
     db.commit(); return RedirectResponse("/configuracion", 303)
 
+
+@app.post("/configuracion/reiniciar-bd")
+def reiniciar_base_datos(request: Request, confirmacion: str = Form(""),
+                         db: Session = Depends(get_db)):
+    """Reinicia la base de datos completa — SOLO para super administrador.
+
+    Borra TODAS las tablas y las recrea vacías con los datos semilla mínimos
+    (empresa, usuario admin). Ideal para configurar de cero una nueva empresa.
+    """
+    exigir_rol(request, "administrador")
+    # Doble verificación: debe ser super admin y confirmar con la palabra clave
+    rol = request.session.get("rol", "").lower()
+    if rol not in ("administrador", "super administrador"):
+        raise HTTPException(403, "Solo el Super Administrador puede reiniciar la base de datos")
+    if confirmacion.strip().upper() != "REINICIAR":
+        raise HTTPException(400, 'Debe escribir la palabra "REINICIAR" para confirmar')
+
+    from .database import engine, Base
+    from .domains.auditoria.services import AuditoriaService
+    import importlib
+
+    try:
+        # Registrar en auditoría ANTES de borrar
+        AuditoriaService(db).registrar_desde_request(
+            request, accion="otro", resultado="ok",
+            descripcion="REINICIO COMPLETO DE BASE DE DATOS solicitado por superadmin")
+        db.commit()
+    except Exception:
+        pass
+
+    try:
+        # Cerrar sesión actual de DB
+        db.close()
+
+        # Borrar todas las tablas y recrearlas
+        Base.metadata.drop_all(bind=engine)
+        Base.metadata.create_all(bind=engine)
+
+        # Crear datos semilla mínimos
+        from .database import SessionLocal
+        seed_db = SessionLocal()
+        try:
+            # Empresa por defecto
+            empresa = Empresa(nombre="Mi Empresa", nit="900.000.000-1")
+            seed_db.add(empresa)
+            seed_db.flush()
+
+            # Usuario admin por defecto
+            from passlib.context import CryptContext
+            pwd_ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
+            admin = Usuario(
+                nombre="Administrador",
+                email="admin@empresa.com",
+                password_hash=pwd_ctx.hash("admin"),
+                rol="administrador",
+                activo=True,
+            )
+            seed_db.add(admin)
+            seed_db.commit()
+        finally:
+            seed_db.close()
+
+        # Limpiar sesión del usuario (forzar nuevo login)
+        request.session.clear()
+
+        logger.warning("BASE DE DATOS REINICIADA por superadmin")
+        return RedirectResponse("/login?msg=Base+de+datos+reiniciada+exitosamente.+Ingrese+con+admin@empresa.com+/+admin", 303)
+    except Exception as e:
+        logger.error("Error reiniciando BD: %s", e, exc_info=True)
+        raise HTTPException(500, f"Error al reiniciar: {str(e)}")
+
+
 @app.get("/roles", response_class=HTMLResponse)
 def vista_roles(request: Request, db: Session = Depends(get_db)):
     """Gestión de roles y permisos por módulo (RBAC parametrizable)."""
