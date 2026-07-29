@@ -156,27 +156,33 @@ async def manejar_error_no_controlado(request: Request, exc: Exception):
         try:
             AuditoriaService(_edb).registrar_desde_request(
                 request, accion="otro", resultado="error",
-                descripcion=f"Error interno [{referencia}] en {request.url.path}")
+                descripcion=f"Error interno [{referencia}] en {request.url.path}: {str(exc)[:150]}")
             _edb.commit()
         finally:
             _edb.close()
     except Exception:
         pass
+
     if _quiere_json(request):
         return JSONResponse(
-            {"detail": "Error interno del servidor", "referencia": referencia},
+            {"detail": "Error interno del servidor", "referencia": referencia, "error": f"{exc.__class__.__name__}: {exc}"},
             status_code=500)
+
+    referer = request.headers.get("referer") or "/dashboard"
+    detalle = f"{exc.__class__.__name__}: {str(exc)}"
     try:
         return templates.TemplateResponse(
             request, "error.html",
             {"request": request, "codigo": 500,
              "titulo": "Algo salió mal",
              "mensaje": "Ocurrió un error inesperado. El equipo quedó notificado.",
-             "referencia": referencia},
+             "referencia": referencia,
+             "referer": referer,
+             "detalle_tecnico": detalle},
             status_code=500)
     except Exception:
         return JSONResponse(
-            {"detail": "Error interno", "referencia": referencia},
+            {"detail": "Error interno", "referencia": referencia, "error": detalle},
             status_code=500)
 
 # CORS - permitir solo mismo origen
