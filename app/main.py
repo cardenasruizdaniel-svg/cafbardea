@@ -802,7 +802,7 @@ def crear_zona(request: Request, nombre: str = Form(...),
                db: Session = Depends(get_db)):
     exigir_rol(request, "administrador", "gerente")
     try:
-        emp_id = _obtener_empresa_id(db)
+        emp_id = _obtener_empresa_id(db, request)
         nombre_clean = nombre.strip() if nombre else "Nueva Zona"
         orden = (db.scalar(select(func.count(Zona.id))) or 0) + 1
         db.add(Zona(empresa_id=emp_id, nombre=nombre_clean, orden=orden, activa=True))
@@ -834,7 +834,7 @@ def crear_mesa(request: Request, zona_id: Optional[int] = Form(None), nombre: st
                db: Session = Depends(get_db)):
     exigir_rol(request, "administrador", "gerente")
     try:
-        emp_id = _obtener_empresa_id(db)
+        emp_id = _obtener_empresa_id(db, request)
         if not zona_id:
             zona = db.scalar(select(Zona).order_by(Zona.orden))
             if not zona:
@@ -1309,9 +1309,9 @@ async def subir_foto_empleado(
 
 
 @app.post("/empleados")
-def crear_empleado(nombre: str = Form(...), documento: str = Form(...), cargo: str = Form(...), salario: Decimal = Form(0), tipo_documento: str = Form("CC"), fecha_ingreso: date | None = Form(None), tipo_contrato: str = Form("indefinido"), eps: str = Form(""), pension: str = Form(""), arl: str = Form(""), db: Session = Depends(get_db)):
+def crear_empleado(request: Request, nombre: str = Form(...), documento: str = Form(...), cargo: str = Form(...), salario: Decimal = Form(0), tipo_documento: str = Form("CC"), fecha_ingreso: date | None = Form(None), tipo_contrato: str = Form("indefinido"), eps: str = Form(""), pension: str = Form(""), arl: str = Form(""), db: Session = Depends(get_db)):
     if db.scalar(select(Empleado).where(Empleado.documento == documento.strip())): raise HTTPException(400, "El documento ya existe")
-    emp_id = _obtener_empresa_id(db)
+    emp_id = _obtener_empresa_id(db, request)
     db.add(Empleado(empresa_id=emp_id, nombre=nombre.strip(), documento=documento.strip(), cargo=cargo.strip(), salario=salario, tipo_documento=tipo_documento, fecha_ingreso=fecha_ingreso, tipo_contrato=tipo_contrato, eps=eps.strip() or None, pension=pension.strip() or None, arl=arl.strip() or None)); db.commit()
     return RedirectResponse("/empleados", 303)
 
@@ -1392,13 +1392,13 @@ def produccion(request: Request, db: Session = Depends(get_db)):
     })
 
 @app.post("/produccion/recetas")
-def crear_receta(producto_id: int = Form(...), tipo_receta: str = Form("produccion"), rendimiento: Decimal = Form(1), instrucciones: str = Form(""), db: Session = Depends(get_db)):
+def crear_receta(request: Request, producto_id: int = Form(...), tipo_receta: str = Form("produccion"), rendimiento: Decimal = Form(1), instrucciones: str = Form(""), db: Session = Depends(get_db)):
     if db.scalar(select(Receta).where(Receta.producto_id == producto_id)): raise HTTPException(400, "El producto ya tiene receta")
     producto = db.get(Producto, producto_id)
     if not producto or rendimiento <= 0 or tipo_receta not in ("produccion", "venta"): raise HTTPException(400, "Receta inválida")
     if tipo_receta == "produccion" and producto.tipo != "elaborado": raise HTTPException(400, "Una receta de producción debe generar un producto elaborado")
     if tipo_receta == "venta" and producto.tipo != "venta": raise HTTPException(400, "Una receta de venta debe corresponder a un producto de venta")
-    emp_id = _obtener_empresa_id(db)
+    emp_id = _obtener_empresa_id(db, request)
     db.add(Receta(empresa_id=emp_id, producto_id=producto_id, rendimiento=rendimiento, instrucciones=instrucciones or None, tipo_receta=tipo_receta)); db.commit()
     return RedirectResponse("/produccion", 303)
 

@@ -96,8 +96,14 @@ class Mesa(Base):
         """Minutos transcurridos desde la apertura del servicio."""
         if not self.fecha_apertura:
             return None
-        delta = hora_colombia() - self.fecha_apertura
-        return int(delta.total_seconds() // 60)
+        try:
+            fa = self.fecha_apertura
+            if getattr(fa, "tzinfo", None) is not None:
+                fa = fa.replace(tzinfo=None)
+            delta = hora_colombia() - fa
+            return max(0, int(delta.total_seconds() // 60))
+        except Exception:
+            return None
 
 
 class ReservaMesa(Base):
