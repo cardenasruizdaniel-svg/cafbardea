@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="theme-color" content="#0a0e27">
-    <title>{{ empresa.nombre }} | CAFBARDLA</title>
+    <title>{{ empresa.nombre }} | CFBARDLA Enterprise POS</title>
 
     <!-- PWA -->
     <link rel="manifest" href="/manifest.webmanifest">
@@ -102,19 +102,11 @@
                 </div>
 
                 <div class="nav-section">
-                    <div class="nav-section-title">Apps (revisar)</div>
-                    <a href="/cliente" class="nav-item" target="_blank">🛍️ App de cliente</a>
-                    <a href="/cliente?mesa=1" class="nav-item" target="_blank">🍽️ Cliente en mesa</a>
-                    <a href="/mobile" class="nav-item" target="_blank">📱 App de meseros</a>
-                    <a href="/pedidos-pendientes" class="nav-item">🔔 Gestión de pedidos</a>
+                    <div class="nav-section-title">Plataformas Móviles</div>
+                    <a href="/mobile" class="nav-item" target="_blank">📱 App POS Móvil (Meseros)</a>
+                    <a href="/mobile/mesas" class="nav-item" target="_blank">🍽️ Salón & Mesas Móvil</a>
+                    <a href="/cliente" class="nav-item" target="_blank">🛍️ App Cliente (QR)</a>
                 </div>
-                {% endif %}
-                {% if usuario.rol != 'administrador' %}
-                <div class="nav-section">
-                    <div class="nav-section-title">Plataformas</div>
-                    <a href="/mobile" class="nav-item">📱 Vista móvil</a>
-                </div>
-                {% endif %}
             </nav>
             
             <div class="sidebar-footer">
@@ -131,9 +123,19 @@
         
         <!-- MAIN CONTENT -->
         <main class="main">
-            <div class="main-toolbar">
-                <button class="sidebar-mobile-btn" id="sidebarMobileBtn" type="button" aria-label="Abrir menú">☰</button>
-                <span class="main-toolbar-label">{{ empresa.nombre }}</span>
+            <div class="main-toolbar" style="display:flex; justify-content:space-between; align-items:center; padding:10px 20px; background:rgba(18,24,38,0.8); backdrop-filter:blur(10px); border-bottom:1px solid rgba(255,255,255,0.08);">
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <button class="sidebar-mobile-btn" id="sidebarMobileBtn" type="button" aria-label="Abrir menú">☰</button>
+                    <span class="main-toolbar-label" style="font-weight:700; font-size:15px; color:#fef3c7;">☕ {{ empresa.nombre }} <span style="font-size:11px; opacity:0.6; margin-left:6px; font-weight:400;">CFBARDLA Enterprise</span></span>
+                </div>
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <a href="/mobile" target="_blank" class="btn-sm" style="display:inline-flex; align-items:center; gap:6px; background:linear-gradient(135deg, #d4af37 0%, #b8860b 100%); color:#0a0e27; font-weight:700; padding:6px 14px; border-radius:20px; text-decoration:none; font-size:13px; box-shadow:0 2px 8px rgba(212,175,55,0.3); transition:all 0.2s;" title="Abrir interfaz móvil para meseros">
+                        📱 Probar App Móvil POS
+                    </a>
+                    <a href="/cliente" target="_blank" class="btn-sm" style="display:inline-flex; align-items:center; gap:6px; background:rgba(255,255,255,0.08); color:#fef3c7; font-weight:600; padding:6px 12px; border-radius:20px; text-decoration:none; font-size:13px; border:1px solid rgba(255,255,255,0.15);" title="Abrir app de menú digital para clientes">
+                        🛍️ App Cliente
+                    </a>
+                </div>
             </div>
             <div class="main-content">
                 {% block content %}{% endblock %}
