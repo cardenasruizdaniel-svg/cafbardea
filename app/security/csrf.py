@@ -99,11 +99,15 @@ class CSRFMiddleware(BaseHTTPMiddleware):
         if "application/x-www-form-urlencoded" in ctype or "multipart/form-data" in ctype:
             try:
                 body = await request.body()
-                # Reponer el body para lecturas posteriores (la ruta).
+                sent = False
                 async def _receive():
-                    return {"type": "http.request", "body": body,
-                            "more_body": False}
+                    nonlocal sent
+                    if not sent:
+                        sent = True
+                        return {"type": "http.request", "body": body, "more_body": False}
+                    return {"type": "http.disconnect"}
                 request._receive = _receive
+
                 # Parsear el token del body ya cacheado.
                 from urllib.parse import parse_qs
                 if "application/x-www-form-urlencoded" in ctype:
