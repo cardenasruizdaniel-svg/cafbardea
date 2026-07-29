@@ -102,11 +102,19 @@
                 </div>
 
                 <div class="nav-section">
-                    <div class="nav-section-title">Plataformas Móviles</div>
-                    <a href="/mobile" class="nav-item" target="_blank">📱 App POS Móvil (Meseros)</a>
-                    <a href="/mobile/mesas" class="nav-item" target="_blank">🍽️ Salón & Mesas Móvil</a>
-                    <a href="/cliente" class="nav-item" target="_blank">🛍️ App Cliente (QR)</a>
+                    <div class="nav-section-title">Apps (revisar)</div>
+                    <a href="/cliente" class="nav-item" target="_blank">🛍️ App de cliente</a>
+                    <a href="/cliente?mesa=1" class="nav-item" target="_blank">🍽️ Cliente en mesa</a>
+                    <a href="/mobile" class="nav-item" target="_blank">📱 App de meseros</a>
+                    <a href="/pedidos-pendientes" class="nav-item">🔔 Gestión de pedidos</a>
                 </div>
+                {% endif %}
+                {% if usuario.rol != 'administrador' %}
+                <div class="nav-section">
+                    <div class="nav-section-title">Plataformas</div>
+                    <a href="/mobile" class="nav-item">📱 Vista móvil</a>
+                </div>
+                {% endif %}
             </nav>
             
             <div class="sidebar-footer">
@@ -159,8 +167,8 @@
             });
             
             // Inicializar WebSocket Cliente
-            const usuarioId = {{ usuario.id or 1 }};
-            const sucursalId = {{ empresa.id or 1 }};
+            const usuarioId = {{ usuario.id | default(1) }};
+            const sucursalId = {{ empresa.id | default(1) }};
             const dispositivo = 'web';
             
             const wsClient = initWebSocketClient(usuarioId, sucursalId, dispositivo);

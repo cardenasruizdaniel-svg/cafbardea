@@ -404,10 +404,28 @@ app.add_middleware(SecurityHeadersMiddleware, hsts=settings.hsts_enabled)
 
 
 def context(request, db):
-    empresa = db.scalar(select(Empresa).limit(1))
-    # Token CSRF estable por sesion: se genera una sola vez y se reutiliza.
-    # Antes se regeneraba en cada render, lo que invalidaba formularios ya
-    # abiertos (p. ej. dos pestañas) y rompia la validacion.
+    emp_id = request.session.get("empresa_id")
+    empresa = None
+    if emp_id:
+        try:
+            empresa = db.get(Empresa, emp_id)
+        except Exception:
+            pass
+    if not empresa:
+        try:
+            empresa = db.scalar(select(Empresa).limit(1))
+        except Exception:
+            pass
+    if not empresa:
+        try:
+            empresa = Empresa(nombre="Mi Café", nit="900.000.000-1")
+            db.add(empresa)
+            db.commit()
+            db.refresh(empresa)
+        except Exception:
+            db.rollback()
+            empresa = Empresa(id=1, nombre="Mi Café", nit="900.000.000-1")
+
     csrf_token = request.session.get("csrf_token")
     if not csrf_token:
         csrf_token = secrets.token_urlsafe(32)
@@ -416,8 +434,9 @@ def context(request, db):
         "request": request,
         "empresa": empresa,
         "usuario": {
-            "nombre": request.session.get("usuario_nombre"),
-            "rol": request.session.get("rol")
+            "id": request.session.get("usuario_id") or 1,
+            "nombre": request.session.get("usuario_nombre") or "Usuario",
+            "rol": request.session.get("rol") or "administrador"
         },
         "csrf_token": csrf_token
     }
@@ -769,13 +788,20 @@ def mesas(request: Request, db: Session = Depends(get_db)):
         for mesa in zona.mesas:
             try:
                 detalles[mesa.id] = servicio.detalle_mesa(mesa.id)
-            except ValueError:
-                continue
+            except Exception:
+                pass
+
+    try: estadisticas = servicio.obtener_estadisticas()
+    except Exception: estadisticas = {}
+
+    try: reservas = servicio.reservas_activas()
+    except Exception: reservas = []
+
     return templates.TemplateResponse(request, "mesas.html", context(request, db) | {
         "zonas": zonas,
         "detalles": detalles,
-        "estadisticas": servicio.obtener_estadisticas(),
-        "reservas": servicio.reservas_activas(),
+        "estadisticas": estadisticas,
+        "reservas": reservas,
     })
 
 
