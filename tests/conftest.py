@@ -34,6 +34,7 @@ def test_db_engine():
     if _os.path.exists(_TEST_DB_PATH):
         _os.remove(_TEST_DB_PATH)
     engine = create_engine(TEST_DATABASE_URL, connect_args={"check_same_thread": False})
+    Base.metadata.drop_all(engine)
     Base.metadata.create_all(engine)
     return engine
 
@@ -70,7 +71,9 @@ def db_session(test_db_engine):
             empleado_id=empleado.id,
             usuario="testuser",
             password_hash=passwords.hash("Test123*"),
-            rol="administrador"
+            rol="administrador",
+            activo=True,
+            acceso_web=True
         )
         db.add(usuario)
         

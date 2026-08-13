@@ -23,34 +23,35 @@
   }
   .product-btn {
     background: #ffffff !important;
-    color: #0f172a !important;
-    border: 1.5px solid #cbd5e1 !important;
+    color: #022c22 !important;
+    border: 2px solid #cbd5e1 !important;
     border-radius: 14px !important;
     padding: 16px !important;
     text-align: left;
-    min-height: 100px;
+    min-height: 102px;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03) !important;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04) !important;
     transition: all 0.18s ease-in-out !important;
     cursor: pointer;
   }
   .product-btn:hover {
-    border-color: #0f6b4a !important;
+    border-color: #10b981 !important;
     transform: translateY(-2px);
-    box-shadow: 0 8px 18px rgba(15, 107, 74, 0.12) !important;
+    box-shadow: 0 8px 20px rgba(16, 185, 129, 0.16) !important;
     background: #f0fdf4 !important;
   }
   .product-btn span {
-    font-size: 15px !important;
-    font-weight: 700 !important;
-    color: #0f172a !important;
+    font-size: 16px !important;
+    font-weight: 800 !important;
+    color: #022c22 !important;
     line-height: 1.25;
+    letter-spacing: -0.2px;
   }
   .product-btn b {
-    color: #0f6b4a !important;
-    font-size: 17px !important;
+    color: #047857 !important;
+    font-size: 18px !important;
     font-weight: 800 !important;
   }
   .ticket {
@@ -286,8 +287,21 @@
     }
   }
 
+  const userRol = '{{ (usuario.rol if usuario else session.get("rol", ""))|lower }}';
+
   async function ajustes(e, id) {
     e.preventDefault();
+    const descVal = parseFloat(descuento.value || 0);
+    let claveAdmin = '';
+
+    if (descVal > 0 && !['administrador', 'gerente'].includes(userRol)) {
+      claveAdmin = prompt('🔒 Los descuentos requieren autorización gerencial.\nIngrese la clave de un Administrador o Gerente:');
+      if (!claveAdmin) {
+        alert('Operación cancelada: Se requiere clave de autorización para otorgar descuentos.');
+        return false;
+      }
+    }
+
     let r = await fetch('/api/ventas/' + id + '/ajustes', {
       method: 'POST',
       headers: { 'X-CSRF-Token': csrfToken },
@@ -295,11 +309,12 @@
         descuento: descuento.value || 0,
         propina: propina.value || 0,
         impuesto: impuesto.value || 0,
+        clave_admin: claveAdmin,
         csrf_token: csrfToken
       })
     });
     let j = await r.json();
-    if (!r.ok) { alert(j.detail); return false; }
+    if (!r.ok) { alert(j.detail || 'Error al aplicar ajustes'); return false; }
     location.reload();
     return false;
   }

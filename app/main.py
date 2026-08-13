@@ -665,35 +665,31 @@ def recalcular_venta(venta: Venta) -> None:
     venta.total = max(Decimal("0"), subtotal - (venta.descuento or 0)) + (venta.propina or 0) + (venta.impuesto or 0) + (venta.cargo_envio or 0)
 
 def consumir_receta(db: Session, receta: Receta, unidades: Decimal, referencia: str) -> Decimal:
-    """Consume los insumos de una receta a traves de InventarioService.
-
-    Se usa al vender productos con receta de tipo "venta". Antes restaba
-    existencias a mano y registraba el movimiento por su cuenta: era una
-    implementacion paralela del inventario que no dejaba saldos en el kardex.
-    """
+    """Consume los insumos/componentes de una receta a traves de InventarioService."""
     from .domains.inventario.services import InventarioService
+    empresa = db.scalar(select(Empresa).limit(1))
+    permitir_negativo = empresa.permitir_stock_negativo if (empresa and empresa.permitir_stock_negativo is not None) else True
     inventario = InventarioService(db)
     costo_total = Decimal("0")
 
-    # Verificar existencias antes de mover nada
     requerimientos = []
     for detalle in receta.detalles:
-        if getattr(detalle, "rol", "insumo") != "insumo":
-            continue
         producto = db.get(Producto, detalle.insumo_id)
         merma = Decimal("1") + (detalle.merma_porcentaje or Decimal("0")) / Decimal("100")
         cantidad = detalle.cantidad * unidades * merma
-        if not producto or (producto.existencias or Decimal("0")) < cantidad:
-            nombre = producto.nombre if producto else f"#{detalle.insumo_id}"
-            raise HTTPException(400, f"Inventario insuficiente: {nombre}")
+        if not permitir_negativo:
+            if not producto or (producto.existencias or Decimal("0")) < cantidad:
+                nombre = producto.nombre if producto else f"#{detalle.insumo_id}"
+                raise HTTPException(400, f"Inventario insuficiente de '{nombre}' para preparar la comanda")
         requerimientos.append((producto, cantidad))
 
     for producto, cantidad in requerimientos:
-        costo_total += cantidad * (producto.costo or Decimal("0"))
-        inventario.registrar_movimiento(
-            producto_id=producto.id, tipo="consumo_receta", cantidad=cantidad,
-            referencia=referencia, empresa_id=producto.empresa_id or 1,
-            permitir_negativo=False)
+        if producto:
+            costo_total += cantidad * (producto.costo or Decimal("0"))
+            inventario.registrar_movimiento(
+                producto_id=producto.id, tipo="consumo_receta", cantidad=cantidad,
+                referencia=referencia, empresa_id=producto.empresa_id or 1,
+                permitir_negativo=permitir_negativo)
     return costo_total
 
 @app.get("/health")
@@ -1024,10 +1020,36 @@ def agregar_item(mesa_id:int, request: Request, producto_id:int=Form(...),cantid
     return {"ok":True,"total":str(venta.total)}
 
 @app.post("/api/ventas/{venta_id}/ajustes")
-def ajustar_venta(venta_id: int, descuento: Decimal = Form(0), propina: Decimal = Form(0), impuesto: Decimal = Form(0), db: Session = Depends(get_db)):
+def ajustar_venta(venta_id: int, request: Request,
+                  descuento: Decimal = Form(0), propina: Decimal = Form(0),
+                  impuesto: Decimal = Form(0), clave_admin: Optional[str] = Form(None),
+                  db: Session = Depends(get_db)):
     venta = db.get(Venta, venta_id)
     if not venta or venta.estado != "abierta": raise HTTPException(404)
     if min(descuento, propina, impuesto) < 0: raise HTTPException(400, "Los valores no pueden ser negativos")
+
+    rol_usuario = request.session.get("rol", "")
+    if descuento > 0 and rol_usuario not in ("administrador", "gerente"):
+        if not clave_admin or not clave_admin.strip():
+            raise HTTPException(403, "Se requiere clave de Administrador o Gerente para aplicar descuentos.")
+        from app.models import Usuario
+        from passlib.context import CryptContext
+        pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+        admins = db.scalars(
+            select(Usuario).where(
+                Usuario.rol.in_(["administrador", "gerente"]),
+                Usuario.activo == True
+            )
+        ).all()
+        clave_clean = clave_admin.strip()
+        valido = False
+        for admin in admins:
+            if admin.password_hash and admin.verificar_password(clave_clean):
+                valido = True
+                break
+        if not valido:
+            raise HTTPException(403, "Clave de autorización incorrecta o no pertenece a un Administrador/Gerente.")
+
     venta.descuento, venta.propina, venta.impuesto = descuento, propina, impuesto
     recalcular_venta(venta); db.commit()
     return {"ok": True, "total": str(venta.total)}
@@ -1970,12 +1992,29 @@ def anular_compra_web(compra_id: int, request: Request,
 
 
 @app.post("/configuracion")
-def actualizar_empresa(request: Request, nombre: str = Form(...), nit: str = Form(""), logo_url: str = Form(""), color_primario: str = Form(...), color_secundario: str = Form(...), moneda: str = Form("COP"), direccion: str = Form(""), telefono: str = Form(""), prefijo_factura: str = Form("POS"), consecutivo_factura: int = Form(1), impuesto_porcentaje: Decimal = Form(0), tipo_persona: str = Form("juridica"), tipo_sociedad: str = Form(""), regimen_tributario: str = Form("ordinario"), facturador_electronico: bool = Form(False), proveedor_tecnologico: str = Form(""), modo_electronico: str = Form("pruebas"), prefijo_nomina: str = Form("NE"), consecutivo_nomina: int = Form(1), software_nomina_id: str = Form(""), db: Session = Depends(get_db)):
+async def actualizar_empresa(request: Request, nombre: str = Form(...), nit: str = Form(""), logo_url: str = Form(""), logo_file: Optional[UploadFile] = File(None), permitir_stock_negativo: bool = Form(False), color_primario: str = Form(...), color_secundario: str = Form(...), moneda: str = Form("COP"), direccion: str = Form(""), telefono: str = Form(""), prefijo_factura: str = Form("POS"), consecutivo_factura: int = Form(1), impuesto_porcentaje: Decimal = Form(0), tipo_persona: str = Form("juridica"), tipo_sociedad: str = Form(""), regimen_tributario: str = Form("ordinario"), facturador_electronico: bool = Form(False), proveedor_tecnologico: str = Form(""), modo_electronico: str = Form("pruebas"), prefijo_nomina: str = Form("NE"), consecutivo_nomina: int = Form(1), software_nomina_id: str = Form(""), db: Session = Depends(get_db)):
     exigir_rol(request, "administrador")
     if tipo_persona not in ("juridica", "natural") or regimen_tributario not in ("ordinario", "simple") or modo_electronico not in ("pruebas", "produccion"): raise HTTPException(400, "Clasificación tributaria inválida")
     if facturador_electronico and modo_electronico == "produccion" and not proveedor_tecnologico.strip(): raise HTTPException(400, "Para producción electrónica configure el proveedor tecnológico")
     empresa = db.scalar(select(Empresa).limit(1))
-    empresa.nombre, empresa.nit, empresa.logo_url = nombre.strip(), nit.strip() or None, logo_url.strip() or None
+    
+    # Procesar archivo de logo subido si existe
+    if logo_file and logo_file.filename and logo_file.size:
+        import os, time
+        uploads_dir = os.path.join(os.path.dirname(__file__), "static", "uploads")
+        os.makedirs(uploads_dir, exist_ok=True)
+        ext = os.path.splitext(logo_file.filename)[1].lower() or ".png"
+        fname = f"logo_{empresa.id}_{int(time.time())}{ext}"
+        fpath = os.path.join(uploads_dir, fname)
+        content = await logo_file.read()
+        with open(fpath, "wb") as f:
+            f.write(content)
+        empresa.logo_url = f"/static/uploads/{fname}"
+    elif logo_url.strip():
+        empresa.logo_url = logo_url.strip()
+
+    empresa.nombre, empresa.nit = nombre.strip(), nit.strip() or None
+    empresa.permitir_stock_negativo = permitir_stock_negativo
     empresa.color_primario, empresa.color_secundario, empresa.moneda = color_primario, color_secundario, moneda.strip().upper()
     empresa.direccion, empresa.telefono = direccion.strip() or None, telefono.strip() or None
     empresa.prefijo_factura, empresa.consecutivo_factura, empresa.impuesto_porcentaje = prefijo_factura.strip().upper()[:12] or "POS", max(1, consecutivo_factura), max(Decimal("0"), impuesto_porcentaje)

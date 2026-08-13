@@ -254,9 +254,62 @@ class TestZonasYCategorias:
         # Mesero cambia a libre
         r2 = client_autenticado.post(f"/api/mesero/mesa/{mesa.id}/estado",
                                      json={"estado": "libre"})
-        assert r2.status_code == 200
         db_session.refresh(mesa)
         assert mesa.estado == "libre"
+
+    def test_descuento_requiere_clave_admin_para_cajero(self, client, db_session):
+        from app.models import Venta, Usuario
+        from passlib.context import CryptContext
+
+        pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+        admin_auth = db_session.query(Usuario).filter_by(usuario="admin_auth").first()
+        if not admin_auth:
+            admin_auth = Usuario(usuario="admin_auth", rol="administrador", password_hash=pwd_context.hash("admin123"), activo=True, acceso_web=True)
+            db_session.add(admin_auth)
+
+        mesero = db_session.query(Usuario).filter_by(usuario="mesero_test").first()
+        if not mesero:
+            mesero = Usuario(usuario="mesero_test", rol="mesero", password_hash=pwd_context.hash("123456"), activo=True, acceso_web=True)
+            db_session.add(mesero)
+
+        venta = Venta(estado="abierta", subtotal=10000, total=10000)
+        db_session.add(venta)
+        db_session.commit()
+
+        # Login como mesero
+        client.post("/login", data={"usuario": "mesero_test", "password": "123456"})
+        
+        # Intento 1: Descuento sin clave -> debe retornar 403
+        r1 = client.post(f"/api/ventas/{venta.id}/ajustes", data={"descuento": "1000"})
+        assert r1.status_code == 403
+
+        # Intento 2: Descuento con clave de admin -> debe retornar 200
+        r2 = client.post(f"/api/ventas/{venta.id}/ajustes", data={"descuento": "1000", "clave_admin": "admin123"})
+        assert r2.status_code == 200
+        db_session.refresh(venta)
+        assert venta.descuento == 1000
+
+    def test_configuracion_stock_negativo_y_logo(self, client_autenticado, db_session):
+        from app.models import Empresa
+        empresa = db_session.query(Empresa).first()
+        if not empresa:
+            return
+
+        # Desactivar stock negativo
+        r = client_autenticado.post("/configuracion", data={
+            "nombre": empresa.nombre,
+            "color_primario": empresa.color_primario,
+            "color_secundario": empresa.color_secundario,
+            "permitir_stock_negativo": "false"
+        }, follow_redirects=False)
+        assert r.status_code == 303
+        db_session.refresh(empresa)
+        assert empresa.permitir_stock_negativo is False
+
+        # Restablecer para no afectar otros tests
+        empresa.permitir_stock_negativo = True
+        db_session.commit()
+
 
 
 

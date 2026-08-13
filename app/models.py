@@ -811,7 +811,7 @@ class Usuario(Base):
     usuario: Mapped[str] = mapped_column(String(60), unique=True)
     password_hash: Mapped[str] = mapped_column(String(255))
     rol: Mapped[str] = mapped_column(String(30), default="mesero")
-    activo: Mapped[bool] = mapped_column(Boolean, default=True)
+    activo: Mapped[bool] = mapped_column(Boolean, default=True, server_default=sa_true())
     # --- Permisos de acceso por canal (Paso 20) ---
     # Determinan a donde puede entrar este usuario. Un empleado puede tener
     # usuario solo para marcar entrada/salida y no acceder a ningun sistema:
