@@ -937,10 +937,21 @@ def crear_mesa(request: Request, zona_id: Optional[int] = Form(None), nombre: st
                 zona_id = zona.id
 
         nombre_clean = nombre.strip() if nombre else ""
-        n = db.scalar(select(func.count(Mesa.id)).where(Mesa.zona_id == zona_id)) or 0
-        if not nombre_clean:
-            nombre_clean = f"Mesa {n + 1}"
+        if nombre_clean:
+            existente = db.scalar(select(Mesa).where(
+                Mesa.zona_id == zona_id,
+                func.lower(Mesa.nombre) == nombre_clean.lower()
+            ))
+            if existente:
+                from urllib.parse import quote
+                return RedirectResponse(f"/mesas?error={quote('Ya existe una mesa con el nombre ' + nombre_clean + ' en esta zona')}", 303)
+        else:
+            idx = 1
+            while db.scalar(select(Mesa).where(Mesa.zona_id == zona_id, func.lower(Mesa.nombre) == f"mesa {idx}")):
+                idx += 1
+            nombre_clean = f"Mesa {idx}"
 
+        n = db.scalar(select(func.count(Mesa.id)).where(Mesa.zona_id == zona_id)) or 0
         px = 8 + (n % 6) * 15
         py = 10 + (n // 6) * 20
         tamano = {"rectangular": (96, 56), "ovalada": (80, 56)}.get(forma, (64, 64))
@@ -1059,6 +1070,17 @@ def eliminar_item(venta_id: int, detalle_id: int, db: Session = Depends(get_db))
     venta, detalle = db.get(Venta, venta_id), db.get(DetalleVenta, detalle_id)
     if not venta or not detalle or detalle.venta_id != venta.id or venta.estado != "abierta": raise HTTPException(404)
     db.delete(detalle); db.flush(); recalcular_venta(venta); db.commit()
+    return {"ok": True, "total": str(venta.total)}
+
+@app.post("/api/ventas/{venta_id}/items/{detalle_id}/cantidad")
+def actualizar_cantidad_item(venta_id: int, detalle_id: int, cantidad: float = Form(...), db: Session = Depends(get_db)):
+    venta, detalle = db.get(Venta, venta_id), db.get(DetalleVenta, detalle_id)
+    if not venta or not detalle or detalle.venta_id != venta.id or venta.estado != "abierta": raise HTTPException(404)
+    if cantidad <= 0:
+        db.delete(detalle)
+    else:
+        detalle.cantidad = cantidad
+    db.flush(); recalcular_venta(venta); db.commit()
     return {"ok": True, "total": str(venta.total)}
 
 @app.post("/api/ventas/{venta_id}/trasladar")

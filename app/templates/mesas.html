@@ -421,11 +421,25 @@
 
 		<p class="hero-note">Vista clara para servicio rápido: toca una mesa para abrir comanda.</p>
 
+		{% set libres = namespace(count=0) %}
+		{% set ocupadas = namespace(count=0) %}
+		{% set reservadas = namespace(count=0) %}
+		{% set limpieza = namespace(count=0) %}
+		{% for z in zonas %}
+		  {% for m in z.mesas %}
+		    {% if m.estado == 'libre' %}{% set libres.count = libres.count + 1 %}
+		    {% elif m.estado == 'ocupada' %}{% set ocupadas.count = ocupadas.count + 1 %}
+		    {% elif m.estado == 'reservada' %}{% set reservadas.count = reservadas.count + 1 %}
+		    {% elif m.estado == 'limpieza' %}{% set limpieza.count = limpieza.count + 1 %}
+		    {% endif %}
+		  {% endfor %}
+		{% endfor %}
+
 		<div class="legend" aria-label="Estados de mesa">
-			<span class="legend-item libre"><span class="legend-dot libre"></span>Libre</span>
-			<span class="legend-item ocupada"><span class="legend-dot ocupada"></span>Ocupada</span>
-			<span class="legend-item reservada"><span class="legend-dot reservada"></span>Reservada</span>
-			<span class="legend-item limpieza"><span class="legend-dot limpieza"></span>Limpieza</span>
+			<span class="legend-item libre"><span class="legend-dot libre"></span>Libre ({{ libres.count }})</span>
+			<span class="legend-item ocupada"><span class="legend-dot ocupada"></span>Ocupada ({{ ocupadas.count }})</span>
+			<span class="legend-item reservada"><span class="legend-dot reservada"></span>Reservada ({{ reservadas.count }})</span>
+			<span class="legend-item limpieza"><span class="legend-dot limpieza"></span>Limpieza ({{ limpieza.count }})</span>
 		</div>
 
 	</section>
@@ -479,7 +493,7 @@
 		<div class="floor">
 			{% if z.mesas %}
 				{% for m in z.mesas %}
-				<a
+				<div
 					class="table {{ m.estado }} {{ m.forma }}"
 					data-mesa-id="{{ m.id }}"
 					data-mesa-estado="{{ m.estado }}"
@@ -487,9 +501,15 @@
 					data-mesa-forma="{{ m.forma }}"
 					data-mesa-capacidad="{{ m.capacidad }}"
 					style="left:{{ m.posicion_x }}%;top:{{ m.posicion_y }}%;width:{{ m.ancho or 64 }}px;height:{{ m.alto or 64 }}px"
-					href="/comanda/{{ m.id }}"
+					onclick="if(!event.defaultPrevented) location.href='/comanda/{{ m.id }}'"
 					title="Abrir comanda de {{ m.nombre }}"
 				>
+					{% if m.estado == 'libre' %}
+					<form action="/mesas/{{ m.id }}/eliminar" method="post" style="position:absolute; top:-6px; right:-6px; z-index:10;" onsubmit="event.preventDefault(); if(confirm('¿Eliminar mesa {{ m.nombre }}?')) this.submit();">
+						<input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+						<button type="submit" title="Eliminar mesa" onclick="event.stopPropagation();" style="background:#ef4444; color:#fff; border:none; border-radius:50%; width:20px; height:20px; font-size:11px; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0; box-shadow:0 2px 4px rgba(0,0,0,0.2);">✕</button>
+					</form>
+					{% endif %}
 					<b>{{ m.nombre }}</b>
 					<small>{{ m.capacidad }} puestos</small>
 					<em>{{ m.estado }}</em>
@@ -502,7 +522,7 @@
 						{% if d.comensales %}<i>{{ d.comensales }} pax</i>{% endif %}
 					</span>
 					{% endif %}
-				</a>
+				</div>
 				{% endfor %}
 			{% else %}
 			<div class="zone-empty">Sin mesas configuradas en esta zona.</div>
